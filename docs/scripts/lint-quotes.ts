@@ -148,6 +148,7 @@ async function checkQuotes() {
 
   const green = (s: string) => `\x1b[32m\x1b[1m${s}\x1b[0m`;
   const red = (s: string) => `\x1b[31m${s}\x1b[0m`;
+  const redBold = (s: string) => `\x1b[31m\x1b[1m${s}\x1b[0m`;
 
   if (allIssues.length > 0) {
     console.error();
@@ -161,7 +162,7 @@ async function checkQuotes() {
     }
     console.log('------');
     console.error(
-      red(
+      redBold(
         `${issuesByFile.size} errored file${issuesByFile.size === 1 ? '' : 's'}, ${allIssues.length} error${allIssues.length === 1 ? '' : 's'}`
       )
     );
