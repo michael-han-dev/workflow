@@ -22,7 +22,7 @@ Import the `fetch` step function from the `workflow` package and assign it to `g
 
 **Before:**
 
-```typescript lineNumbers title="workflows/ai.ts"
+```ts lineNumbers title="workflows/ai.ts"
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 
@@ -41,7 +41,7 @@ export async function chatWorkflow(prompt: string) {
 
 **After:**
 
-```typescript lineNumbers title="workflows/ai.ts"
+```ts lineNumbers title="workflows/ai.ts"
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { fetch } from "workflow"; // [!code highlight]
@@ -67,7 +67,7 @@ export async function chatWorkflow(prompt: string) {
 
 This is the most common scenario - using AI SDK functions that make HTTP requests:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { generateText, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { fetch } from "workflow"; // [!code highlight]
@@ -91,7 +91,7 @@ export async function aiWorkflow(userMessage: string) {
 
 You can also use the fetch step function directly for your own HTTP requests:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { fetch } from "workflow";
 
 export async function dataWorkflow() {

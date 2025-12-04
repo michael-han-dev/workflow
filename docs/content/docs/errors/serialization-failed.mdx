@@ -31,7 +31,7 @@ Functions, class instances, symbols, and other non-serializable types cannot be 
 
 ### Passing Functions
 
-```typescript lineNumbers
+```ts lineNumbers
 // Error - functions cannot be serialized
 export async function processWorkflow() {
   "use workflow";
@@ -43,7 +43,7 @@ export async function processWorkflow() {
 
 **Solution:** Pass data instead, then define the function logic in the step.
 
-```typescript lineNumbers
+```ts lineNumbers
 // Fixed - pass configuration data instead
 export async function processWorkflow() {
   "use workflow";
@@ -62,7 +62,7 @@ async function processStep(config: { shouldLog: boolean }) {
 
 ### Class Instances
 
-```typescript lineNumbers
+```ts lineNumbers
 class User {
   constructor(public name: string) {}
   greet() { return `Hello ${this.name}`; }
@@ -78,7 +78,7 @@ export async function greetWorkflow() {
 
 **Solution:** Pass plain objects and reconstruct the class in the step.
 
-```typescript lineNumbers
+```ts lineNumbers
 class User {
   constructor(public name: string) {}
   greet() { return `Hello ${this.name}`; }

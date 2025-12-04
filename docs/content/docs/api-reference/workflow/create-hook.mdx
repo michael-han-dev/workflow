@@ -62,7 +62,7 @@ The returned `Hook` object also implements `AsyncIterable<T>`, which allows you 
 
 When creating a hook, you can specify a payload type to be used for automatic type safety.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createHook } from "workflow"
 
 export async function approvalWorkflow() {
@@ -83,7 +83,7 @@ export async function approvalWorkflow() {
 
 Tokens are used to identify a specific hook. You can customize the token to be more specific to a use case.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createHook } from "workflow";
 
 export async function slackBotWorkflow(channelId: string) {
@@ -107,7 +107,7 @@ export async function slackBotWorkflow(channelId: string) {
 
 You can also wait for multiple payloads by using the `for await...of` syntax.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createHook } from "workflow"
 
 export async function collectHookWorkflow() {

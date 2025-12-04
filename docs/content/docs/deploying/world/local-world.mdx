@@ -47,7 +47,7 @@ The queue automatically detects your development server's port and adjusts the q
 
 The local world provides a simple authentication implementation since no authentication is required or enforced in local development.
 
-```typescript
+```ts
 getAuthHeaders(): Promise<Record<string, string>> {
   return Promise.resolve({});
 }
@@ -67,7 +67,7 @@ export WORKFLOW_LOCAL_DATA_DIR=./custom-workflow-data
 
 **Programmatically:**
 
-```typescript
+```ts
 import { createLocalWorld } from "@workflow/world-local";
 
 const world = createLocalWorld({ dataDir: "./custom-workflow-data" });
@@ -79,7 +79,7 @@ By default, the local world **automatically detects** which port your applicatio
 
 **Auto-detection example** (recommended):
 
-```typescript
+```ts
 import { createLocalWorld } from "@workflow/world-local";
 
 // Port is automatically detected - no configuration needed!
@@ -92,7 +92,7 @@ If auto-detection fails, the world will fall back to the `PORT` environment vari
 
 You can override the auto-detected port by specifying it explicitly:
 
-```typescript
+```ts
 import { createLocalWorld } from "@workflow/world-local";
 
 const world = createLocalWorld({ port: 3000 });
@@ -116,7 +116,7 @@ export WORKFLOW_LOCAL_BASE_URL=https://local.example.com:3000
 
 **Programmatically:**
 
-```typescript
+```ts
 import { createLocalWorld } from "@workflow/world-local";
 
 // HTTPS
@@ -207,7 +207,7 @@ For production deployments, use the [Vercel World](/docs/deploying/world/vercel-
 
 Creates a local world instance:
 
-```typescript
+```ts
 function createLocalWorld(
   args?: Partial<{
     dataDir: string;
@@ -230,7 +230,7 @@ function createLocalWorld(
 
 **Examples:**
 
-```typescript
+```ts
 import { createLocalWorld } from "@workflow/world-local";
 
 // Use all defaults (recommended - auto-detects port)

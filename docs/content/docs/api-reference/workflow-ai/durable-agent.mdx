@@ -10,7 +10,7 @@ The `DurableAgent` class enables you to create AI-powered agents that can mainta
 
 Tool calls can be implemented as workflow steps for automatic retries, or as regular workflow-level logic utilizing core library features such as [`sleep()`](/docs/api-reference/workflow/sleep) and [Hooks](/docs/foundations/hooks).
 
-```typescript lineNumbers
+```ts lineNumbers
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import { z } from "zod";
@@ -113,7 +113,7 @@ export default PrepareStepResult;`}
 
 ### Basic Agent with Tools
 
-```typescript
+```ts
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import { z } from "zod";
@@ -155,7 +155,7 @@ async function weatherAgentWorkflow(userQuery: string) {
 
 ### Multiple Tools
 
-```typescript
+```ts
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import { z } from "zod";
@@ -204,7 +204,7 @@ async function multiToolAgentWorkflow(userQuery: string) {
 
 ### Multi-turn Conversation
 
-```typescript
+```ts
 import { DurableAgent } from "@workflow/ai/agent";
 import { z } from "zod";
 
@@ -256,7 +256,7 @@ async function multiTurnAgentWorkflow() {
 
 ### Tools with Workflow Library Features
 
-```typescript
+```ts
 import { DurableAgent } from "@workflow/ai/agent";
 import { sleep, defineHook, getWritable } from "workflow";
 import { z } from "zod";
@@ -325,7 +325,7 @@ async function agentWithLibraryFeaturesWorkflow(userRequest: string) {
 
 Use `prepareStep` to modify settings before each step in the agent loop:
 
-```typescript
+```ts
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import type { UIMessageChunk } from "ai";
@@ -369,7 +369,7 @@ async function agentWithPrepareStep(userMessage: string) {
 
 Inject messages from external sources (like hooks) before each LLM call:
 
-```typescript
+```ts
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable, defineHook } from "workflow";
 import type { UIMessageChunk } from "ai";

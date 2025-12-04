@@ -12,7 +12,7 @@ Workflows use special directives to mark code for transformation by the Workflow
 
 Workflows use two directives to mark functions for special handling:
 
-```typescript
+```ts
 export async function handleUserSignup(email: string) {
   "use workflow"; // [!code highlight]
 
@@ -69,7 +69,7 @@ flowchart LR
 
 **Input:**
 
-```typescript
+```ts
 export async function createUser(email: string) {
   "use step";
   return { id: crypto.randomUUID(), email };
@@ -78,7 +78,7 @@ export async function createUser(email: string) {
 
 **Output:**
 
-```typescript
+```ts
 import { registerStepFunction } from "workflow/internal/private"; // [!code highlight]
 
 export async function createUser(email: string) {
@@ -106,7 +106,7 @@ registerStepFunction("step//workflows/user.js//createUser", createUser); // [!co
 
 **Input:**
 
-```typescript
+```ts
 export async function createUser(email: string) {
   "use step";
   return { id: crypto.randomUUID(), email };
@@ -121,7 +121,7 @@ export async function handleUserSignup(email: string) {
 
 **Output:**
 
-```typescript
+```ts
 export async function createUser(email: string) {
   return globalThis[Symbol.for("WORKFLOW_USE_STEP")]("step//workflows/user.js//createUser")(email); // [!code highlight]
 }
@@ -155,7 +155,7 @@ handleUserSignup.workflowId = "workflow//workflows/user.js//handleUserSignup"; /
 
 **Input:**
 
-```typescript
+```ts
 export async function handleUserSignup(email: string) {
   "use workflow";
   const user = await createUser(email);
@@ -165,7 +165,7 @@ export async function handleUserSignup(email: string) {
 
 **Output:**
 
-```typescript
+```ts
 export async function handleUserSignup(email: string) {
   throw new Error("You attempted to execute ..."); // [!code highlight]
 }

@@ -10,7 +10,7 @@ It creates a `hook_received` event and re-triggers the workflow to continue exec
 `resumeHook` is a runtime function that must be called from outside a workflow function.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeHook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -55,7 +55,7 @@ showSections={["returns"]}
 
 Using `resumeHook` in a basic API route to resume a hook:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeHook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
 Defining a payload type and using `resumeHook` to resume a hook with type safety:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeHook } from "workflow/api";
 
 type ApprovalPayload = {
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
 
 Using `resumeHook` in Next.js server actions to resume a hook:
 
-```typescript lineNumbers
+```ts lineNumbers
 "use server";
 
 import { resumeHook } from "workflow/api";
@@ -125,7 +125,7 @@ export async function approveRequest(token: string, approved: boolean) {
 
 Using `resumeHook` in a generic webhook handler to resume a hook:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeHook } from "workflow/api";
 
 // Generic webhook handler that forwards data to a hook

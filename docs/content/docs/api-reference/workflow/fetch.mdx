@@ -10,7 +10,7 @@ This is useful when you need to call external APIs or services from within your 
 `fetch` is a *special* type of step function provided and should be called directly inside workflow functions.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { fetch } from "workflow"
 
 async function apiWorkflow() {
@@ -52,7 +52,7 @@ showSections={['returns']}
 
 Here's a simple example of how you can use `fetch` inside your workflow.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { fetch } from "workflow"
 
 async function apiWorkflow() {
@@ -83,7 +83,7 @@ This API is provided as a convenience to easily use `fetch` in workflow, but oft
 
 Here's an example of a custom fetch wrapper that provides more sophisticated error handling with custom retry logic:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { FatalError, RetryableError } from "workflow"
 
 export async function customFetch(
@@ -137,3 +137,9 @@ This example demonstrates:
 - Throwing [`FatalError`](/docs/api-reference/workflow/fatal-error) for client errors (400-499) to prevent retries.
 - Handling 429 rate limiting by reading the `Retry-After` header and using [`RetryableError`](/docs/api-reference/workflow/retryable-error).
 - Allowing automatic retries for server errors (5xx).
+
+## Related Functions
+
+- [`FatalError`](/docs/api-reference/workflow/fatal-error) - Prevent a step from retrying
+- [`RetryableError`](/docs/api-reference/workflow/retryable-error) - Customize retry behavior with delay options
+- [`sleep()`](/docs/api-reference/workflow/sleep) - Suspend a workflow for a duration

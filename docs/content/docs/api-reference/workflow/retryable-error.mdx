@@ -6,7 +6,7 @@ When a `RetryableError` is thrown in a step, it indicates that the workflow shou
 
 You should use this when you want to retry a step or retry after a certain duration.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { RetryableError } from "workflow"
 
 async function retryableWorkflow() {
@@ -53,7 +53,7 @@ export default RetryableErrorOptions;`}
 
 `RetryableError` can be configured with a `retryAfter` parameter to specify when the step should be retried after.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { RetryableError } from "workflow"
 
 async function retryableWorkflow() {
@@ -71,7 +71,7 @@ async function retryStep() {
 
 You can also specify the retry delay in milliseconds:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { RetryableError } from "workflow"
 
 async function retryableWorkflow() {
@@ -89,7 +89,7 @@ async function retryStep() {
 
 Or retry at a specific date and time:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { RetryableError } from "workflow"
 
 async function retryableWorkflow() {
@@ -104,3 +104,8 @@ async function retryStep() {
     })
 }
 ```
+
+## Related Functions
+
+- [`FatalError`](/docs/api-reference/workflow/fatal-error) - Prevent a step from retrying
+- [`fetch()`](/docs/api-reference/workflow/fetch) - Make HTTP requests with automatic retry handling

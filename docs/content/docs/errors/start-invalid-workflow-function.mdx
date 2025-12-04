@@ -26,7 +26,7 @@ This error typically happens when:
 
 ### Missing `"use workflow"` Directive
 
-```typescript lineNumbers title="workflows/order.ts"
+```ts lineNumbers title="workflows/order.ts"
 // Error - missing directive
 export async function processOrder(orderId: string) { // [!code highlight]
   // workflow logic
@@ -36,7 +36,7 @@ export async function processOrder(orderId: string) { // [!code highlight]
 
 **Solution:** Add the `"use workflow"` directive.
 
-```typescript lineNumbers title="workflows/order.ts"
+```ts lineNumbers title="workflows/order.ts"
 // Fixed - includes directive
 export async function processOrder(orderId: string) {
   "use workflow"; // [!code highlight]
@@ -48,7 +48,7 @@ export async function processOrder(orderId: string) {
 
 ### Incorrect Import
 
-```typescript lineNumbers title="app/api/route.ts"
+```ts lineNumbers title="app/api/route.ts"
 import { start } from "workflow/api";
 // Error - importing step function instead of workflow
 import { processStep } from "@/workflows/order"; // [!code highlight]
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
 **Solution:** Import the correct workflow function.
 
-```typescript lineNumbers title="app/api/route.ts"
+```ts lineNumbers title="app/api/route.ts"
 import { start } from "workflow/api";
 // Fixed - import workflow function
 import { processOrder } from "@/workflows/order"; // [!code highlight]
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
 ### Next.js Configuration Missing
 
-```typescript lineNumbers title="next.config.ts"
+```ts lineNumbers title="next.config.ts"
 // Error - missing withWorkflow wrapper
 import type { NextConfig } from "next";
 
@@ -87,7 +87,7 @@ export default nextConfig;
 
 **Solution:** Wrap with `withWorkflow()`.
 
-```typescript lineNumbers title="next.config.ts"
+```ts lineNumbers title="next.config.ts"
 // Fixed - includes withWorkflow
 import { withWorkflow } from "workflow/next"; // [!code highlight}
 import type { NextConfig } from "next";

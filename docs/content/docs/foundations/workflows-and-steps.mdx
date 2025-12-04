@@ -21,7 +21,7 @@ Although this may seem limiting initially, this feature is important in order to
 
 It helps to think of the workflow function less like a full JavaScript runtime and more like "stitching together" various steps using conditionals, loops, try/catch handlers, `Promise.all`, and other language primitives.
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrderWorkflow(orderId: string) {
   "use workflow"; // [!code highlight]
 
@@ -49,7 +49,7 @@ The sandboxed environment that workflows run in already ensures determinism. For
 
 Step functions perform the actual work in a workflow and have full runtime access.
 
-```typescript lineNumbers
+```ts lineNumbers
 async function chargePayment(order: Order) {
   "use step"; // [!code highlight]
 
@@ -85,7 +85,7 @@ Step functions are primarily meant to be used inside a workflow.
 Calling a step from outside a workflow or from another step will essentially run the step in the same process like a normal function (in other words, the `use step` directive is a no-op). This means you can reuse step functions in other parts of your codebase without needing to duplicate business logic.
 
 
-```typescript lineNumbers
+```ts lineNumbers
 async function updateUser(userId: string) {
   "use step";
   await db.insert(...);
@@ -119,7 +119,7 @@ There are multiple ways a workflow can suspend:
 - Using `sleep()` to pause for some fixed duration.
 - Awaiting on a promise returned by [`createWebhook()`](/docs/api-reference/workflow/create-webhook), which resumes the workflow when an external system passes data into the workflow.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { sleep, createWebhook } from "workflow";
 
 export async function documentReviewProcess(userId: string) {
@@ -145,7 +145,7 @@ export async function documentReviewProcess(userId: string) {
 
 The simplest workflow consists of a workflow function and one or more step functions.
 
-```typescript lineNumbers
+```ts lineNumbers
 // Workflow function (orchestrates the steps)
 export async function greetingWorkflow(name: string) {
   "use workflow";

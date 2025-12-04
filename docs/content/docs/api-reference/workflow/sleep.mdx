@@ -10,7 +10,7 @@ This is useful when you want to resume a workflow after some duration or date.
 `sleep` is a *special* type of step function and should be called directly inside workflow functions.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { sleep } from "workflow"
 
 async function testWorkflow() {
@@ -36,7 +36,7 @@ showSections={['parameters']}
 
 You can specify a duration for `sleep` to suspend the workflow for a fixed amount of time.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { sleep } from "workflow"
 
 async function testWorkflow() {
@@ -49,7 +49,7 @@ async function testWorkflow() {
 
 You can specify a future `Date` object for `sleep` to suspend the workflow until a specific date.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { sleep } from "workflow"
 
 async function testWorkflow() {
@@ -57,3 +57,8 @@ async function testWorkflow() {
     await sleep(new Date(Date.now() + 10_000)) // [!code highlight]
 }
 ```
+
+## Related Functions
+
+- [`fetch()`](/docs/api-reference/workflow/fetch) - Make HTTP requests from within a workflow
+- [`createWebhook()`](/docs/api-reference/workflow/create-webhook) - Suspend a workflow until an HTTP request is received

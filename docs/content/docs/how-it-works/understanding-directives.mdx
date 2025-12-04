@@ -20,7 +20,7 @@ The Workflow DevKit has two types of functions:
 
 **Step functions** are side-effecting operations with full Node.js runtime access. Think of them like named RPC calls - they run once, their result is persisted, and they can be [retried on failure](/docs/foundations/errors-and-retries):
 
-```typescript lineNumbers
+```ts lineNumbers
 async function fetchUserData(userId: string) {
   "use step";
 
@@ -32,7 +32,7 @@ async function fetchUserData(userId: string) {
 
 **Workflow functions** are deterministic orchestrators that coordinate steps. They must be pure functions - during replay, the same step results always produce the same output. This is necessary because workflows resume by replaying their code from the beginning using cached step results; non-deterministic logic would break resumption. They run in a sandboxed environment without direct Node.js access:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function onboardUser(userId: string) {
   "use workflow";
 
@@ -104,7 +104,7 @@ Before settling on directives, we prototyped several other approaches. Each had 
 
 Our first proof of concept used a wrapper-based API without a build step:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(() => {
   const message = run(async () => step());
   return `${message}!`;
@@ -119,7 +119,7 @@ This implementation used "throwing promises" (similar to early React Suspense) t
 
 Any operation that could produce non-deterministic results had to be wrapped in `run()`:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(async () => {
   // These would be non-deterministic without wrapping
   const now = await run(() => Date.now()); // [!code highlight]
@@ -134,7 +134,7 @@ This was verbose and easy to forget. Moreover, if a developer forgot to wrap som
 
 For example:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(async () => {
   // Nothing stops you from doing this:
   const now = Date.now(); // Non-deterministic, untracked! // [!code highlight]
@@ -149,7 +149,7 @@ export const myWorkflow = workflow(async () => {
 
 Variables captured in closures would behave unexpectedly when steps mutated them:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(async () => {
   let counter = 0;
 
@@ -171,7 +171,7 @@ The workflow function would replay multiple times, but mutations inside `run()` 
 
 Since we used thrown promises for control flow, `try/catch` blocks became unreliable:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(async () => {
   try {
     const result = await run(() => step());
@@ -191,7 +191,7 @@ export const myWorkflow = workflow(async () => {
 
 We explored using generators for explicit suspension points, inspired by libraries like Effect.ts:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(function*() {
   const message = yield* run(() => step());
   return `${message}!`;
@@ -208,7 +208,7 @@ We're big fans of [Effect.ts](https://effect.website/) and the power of generato
 
 Generators require a custom mental model that differs significantly from familiar async/await patterns. The `yield*` syntax and generator delegation were unfamiliar to many developers:
 
-```typescript lineNumbers
+```ts lineNumbers
 // Standard async/await (familiar)
 const result = await fetchData();
 
@@ -218,7 +218,7 @@ const result = yield* run(() => fetchData()); // [!code highlight]
 
 Complex workflows became particularly verbose and difficult to read:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(function*() {
   const user = yield* run(() => fetchUser());
 
@@ -240,7 +240,7 @@ export const myWorkflow = workflow(function*() {
 
 Like the runtime-only approach, generators couldn't prevent non-deterministic code:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const myWorkflow = workflow(function*() {
   const now = Date.now(); // Still possible, still problematic // [!code highlight]
   const user = yield* run(() => fetchUser());
@@ -297,7 +297,7 @@ We considered decorators, but they presented significant challenges both technic
 
 Decorators are not yet a standard syntax ([TC39 proposal](https://github.com/tc39/proposal-decorators)) and they currently only work with classes. A class decorator approach could look like this:
 
-```typescript lineNumbers
+```ts lineNumbers
 import {workflow, step} from "workflow";
 
 class MyWorkflow {
@@ -335,7 +335,7 @@ See the [Macro Wrapper](#macro-wrapper-approach) section below for a deeper dive
 
 We also explored compile-time macro approaches - using a compiler to transform wrapper functions or decorators into directive-based code:
 
-```typescript lineNumbers
+```ts lineNumbers
 // Function wrapper approach
 import { useWorkflow } from "workflow"
 
@@ -358,7 +358,7 @@ class MyWorkflow {
 
 The compiler could transform both to be equivalent to WDK's directive approach:
 
-```typescript lineNumbers
+```ts lineNumbers
 export const processOrder = async (orderId: string) => {
   "use workflow"; // [!code highlight]
   const order = await fetchOrder(orderId);
@@ -374,7 +374,7 @@ The fundamental issue is that both wrappers and decorators make workflows appear
 
 **Concrete examples of how this breaks:**
 
-```typescript lineNumbers
+```ts lineNumbers
 // Someone writes a "helpful" utility
 function withRetry(fn: Function) {
   return useWorkflow(async (...args) => { // Works with useWorkflow // [!code highlight]
@@ -419,7 +419,7 @@ Directives address all the issues we encountered with previous approaches:
 
 The `"use workflow"` directive tells the compiler to treat this code differently:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrder(orderId: string) {
   "use workflow"; // Compiler knows: transform this for sandbox execution // [!code highlight]
 
@@ -432,7 +432,7 @@ export async function processOrder(orderId: string) {
 
 The compiler can enforce restrictions before deployment:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function badWorkflow() {
   "use workflow";
 
@@ -447,7 +447,7 @@ In fact, Workflow DevKit will throw an error that links to this error page: [Nod
 
 Steps are transformed into function calls that communicate with the runtime:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrder(orderId: string) {
   "use workflow";
 
@@ -463,7 +463,7 @@ export async function processOrder(orderId: string) {
 
 Callbacks, however, run inside the workflow sandbox and work as expected:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrders(orderIds: string[]) {
   "use workflow";
 
@@ -488,7 +488,7 @@ The callback runs in the workflow sandbox, so closure reads and mutations behave
 
 Looks and feels like regular JavaScript:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrder(orderId: string) {
   "use workflow";
 
@@ -508,7 +508,7 @@ The `"use step"` directive maintains consistency. While steps run in the full No
 
 We could have used a function wrapper just for steps:
 
-```typescript lineNumbers
+```ts lineNumbers
 // Mixed approach (inconsistent)
 export async function processOrder(orderId: string) {
   "use workflow"; // Directive for workflow // [!code highlight]
@@ -526,7 +526,7 @@ Mixing syntaxes felt inconsistent.
 
 An alternative approach we considered was to treat *all* async function calls as steps by default:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrder(orderId: string) {
   "use workflow";
 
@@ -542,7 +542,7 @@ export async function processOrder(orderId: string) {
 
 This breaks down because many valid async operations inside workflows aren't steps:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function processOrder(orderId: string) {
   "use workflow";
 

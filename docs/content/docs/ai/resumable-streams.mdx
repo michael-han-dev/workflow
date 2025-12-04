@@ -20,7 +20,7 @@ Let's add stream resumption to our Flight Booking Agent that we build in the [Bu
 
 Modify your chat endpoint to include the workflow run ID in a response header. The Run ID uniquely identifies the run's stream, so it allows the client to know which stream to reconnect to.
 
-```typescript title="app/api/chat/route.ts" lineNumbers
+```ts title="app/api/chat/route.ts" lineNumbers
 // ... imports ...
 
 export async function POST(req: Request) {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 
 Currently we only have one API endpoint that always creates a new run, so we need to create a new API route that returns the stream for an existing run:
 
-```typescript title="app/api/chat/[id]/stream/route.ts" lineNumbers
+```ts title="app/api/chat/[id]/stream/route.ts" lineNumbers
 import { createUIMessageStreamResponse } from "ai";
 import { getRun } from "workflow/api"; // [!code highlight]
 
@@ -83,7 +83,7 @@ Replace the default transport in AI-SDK's `useChat` with [`WorkflowChatTransport
   /docs/api-reference/workflow-ai/workflow-chat-transport
 ), and update the callbacks to store and use the latest run ID. For now, we'll store the run ID in localStorage. For your own app, this would be stored wherever you store session information.
 
-```typescript title="app/page.tsx" lineNumbers
+```ts title="app/page.tsx" lineNumbers
 "use client";
 
 import { useChat } from "@ai-sdk/react";

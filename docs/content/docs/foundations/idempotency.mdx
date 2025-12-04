@@ -14,7 +14,7 @@ To prevent this, many external APIs support idempotency keys. An idempotency key
 Every step invocation has a stable `stepId` that stays the same across retries.
 Use it as the idempotency key when calling third-party APIs.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getStepMetadata } from "workflow";
 
 async function chargeUser(userId: string, amount: number) {

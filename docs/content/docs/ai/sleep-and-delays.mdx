@@ -22,7 +22,7 @@ Sleep is a built-in function in Workflow DevKit, so exposing it as a tool is as 
 
 Add a new "sleep" tool to the `tools` defined in `workflows/chat/steps/tools.ts`:
 
-```typescript title="workflows/chat/steps/tools.ts" lineNumbers
+```ts title="workflows/chat/steps/tools.ts" lineNumbers
 import { getWritable, sleep } from "workflow"; // [!code highlight]
 
 // ... existing imports ...
@@ -63,7 +63,7 @@ export const flightBookingTools = {
 
 To round it off, extend the UI to display the tool call status. This can be done either by displaying the tool call information directly, or by emitting custom data parts to the stream (see [Streaming Updates from Tools](/docs/ai/streaming-updates-from-tools) for more details). In this case, since there aren't any fine-grained progress updates to show, we'll just display the tool call information directly:
 
-```typescript title="app/page.tsx" lineNumbers
+```ts title="app/page.tsx" lineNumbers
 export default function ChatPage() {
 
   // ...
@@ -149,7 +149,7 @@ Aside from providing `sleep()` as a tool, there are other use cases for Agents t
 
 When hitting API rate limits, use `RetryableError` with a delay:
 
-```typescript lineNumbers
+```ts lineNumbers
 async function callRateLimitedAPI(endpoint: string) {
   "use step";
 
@@ -170,7 +170,7 @@ async function callRateLimitedAPI(endpoint: string) {
 
 Poll for a result with increasing delays:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function pollForResult(jobId: string) {
   "use workflow";
 

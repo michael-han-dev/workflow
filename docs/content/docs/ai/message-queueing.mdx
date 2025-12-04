@@ -22,7 +22,7 @@ If you just need basic multi-turn conversations where messages arrive between tu
 
 The `prepareStep` callback runs before each step in the agent loop. It receives the current state and can modify the messages sent to the model:
 
-```typescript lineNumbers
+```ts lineNumbers
 interface PrepareStepInfo {
   model: string | (() => Promise<LanguageModelV2>);  // Current model
   stepNumber: number;                                // 0-indexed step count
@@ -40,7 +40,7 @@ interface PrepareStepResult {
 
 Once you have a [multi-turn workflow](/docs/ai/chat-session-modeling#multi-turn-workflows), you can combine a message queue with `prepareStep` to inject messages that arrive during processing:
 
-```typescript title="workflows/chat/workflow.ts" lineNumbers
+```ts title="workflows/chat/workflow.ts" lineNumbers
 import { DurableAgent } from "@workflow/ai/agent";
 import type { UIMessageChunk } from "ai";
 import { getWritable } from "workflow";

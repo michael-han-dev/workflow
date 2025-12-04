@@ -8,7 +8,7 @@ Once you've defined your workflow functions, you need to trigger them to begin e
 
 The [`start()`](/docs/api-reference/workflow-api/start) function is used to programmatically trigger workflow executions from runtime contexts like API routes, Server Actions, or any server-side code.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { start } from "workflow/api";
 import { handleUserSignup } from "./workflows/user-signup";
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
 When you call `start()`, it returns a [`Run`](/docs/api-reference/workflow-api/start#returns) object that provides access to the workflow's status and results.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { start } from "workflow/api";
 import { processOrder } from "./workflows/process-order";
 
@@ -73,7 +73,7 @@ Most `Run` properties are async getters that return promises. You need to `await
 
 The most common pattern is to start a workflow and immediately return, letting it execute in the background:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { start } from "workflow/api";
 import { sendNotifications } from "./workflows/notifications";
 
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
 
 If you need to wait for the workflow to complete before responding:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { start } from "workflow/api";
 import { generateReport } from "./workflows/reports";
 
@@ -115,7 +115,7 @@ Be cautious when waiting for `returnValue` - if your workflow takes a long time,
 
 Stream real-time updates from your workflow as it executes, without waiting for completion:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { start } from "workflow/api";
 import { generateAIContent } from "./workflows/ai-generation";
 
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
 
 Your workflow can write to the stream using [`getWritable()`](/docs/api-reference/workflow/get-writable):
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getWritable } from "workflow";
 
 export async function generateAIContent(prompt: string) {
@@ -180,7 +180,7 @@ Streams are particularly useful for AI workflows where you want to show progress
 
 You can retrieve a workflow run later using its `runId` with [`getRun()`](/docs/api-reference/workflow-api/get-run):
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getRun } from "workflow/api";
 
 export async function GET(request: Request) {

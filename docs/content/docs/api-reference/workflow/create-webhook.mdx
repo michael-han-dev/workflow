@@ -53,7 +53,7 @@ The `RequestWithResponse` type extends the standard `Request` interface with a `
 
 Create a webhook that receives HTTP requests and logs the request details:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook } from "workflow"
 
 export async function basicWebhookWorkflow() {
@@ -76,7 +76,7 @@ export async function basicWebhookWorkflow() {
 
 Use the `respondWith()` method to send custom HTTP responses. Note that `respondWith()` must be called from within a step function:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook, type RequestWithResponse } from "workflow"
 
 async function sendResponse(request: RequestWithResponse) { // [!code highlight]
@@ -116,7 +116,7 @@ async function processData(data: any) {
 
 Tokens are used to identify a specific webhook. You can customize the token to be more specific to a use case.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { type RequestWithResponse } from "workflow"
 
 async function sendAck(request: RequestWithResponse) {
@@ -156,7 +156,7 @@ async function deployCommit(event: any) {
 
 You can also wait for multiple requests by using the `for await...of` syntax.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook, type RequestWithResponse } from "workflow"
 
 async function sendSlackResponse(request: RequestWithResponse, message: string) {

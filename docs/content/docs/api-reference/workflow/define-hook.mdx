@@ -63,7 +63,7 @@ export default DefineHook;`}
 
 By defining the hook once with a specific payload type, you can reuse it in multiple workflows and API routes with automatic type safety.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { defineHook } from "workflow";
 
 // Define once with a specific payload type
@@ -88,7 +88,7 @@ export async function workflowWithApproval() {
 
 Hooks can be resumed using the same defined hook and a token. By using the same hook, you can ensure that the payload matches the defined type when resuming a hook.
 
-```typescript lineNumbers
+```ts lineNumbers
 // Use the same defined hook to resume
 export async function POST(request: Request) {
   const { token, approved, comment } = await request.json();
@@ -119,7 +119,7 @@ Standard Schema is a standardized specification for schema validation libraries.
 
 Here's an example using [Zod](https://zod.dev) to validate and transform hook payloads:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { defineHook } from "workflow";
 import { z } from "zod";
 
@@ -146,7 +146,7 @@ export async function approvalWorkflow(approvalId: string) {
 
 When resuming the hook from an API route, the schema validates and transforms the incoming payload before the workflow resumes:
 
-```typescript lineNumbers
+```ts lineNumbers
 export async function POST(request: Request) {
   // Incoming payload: { token: "...", approved: true, comment: "   Ready!   " }
   const { token, approved, comment } = await request.json();
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
 
 The same pattern works with any Standard Schema v1 compliant library. Here's an example with [Valibot](https://valibot.dev):
 
-```typescript lineNumbers
+```ts lineNumbers
 import { defineHook } from "workflow";
 import * as v from "valibot";
 
@@ -185,7 +185,7 @@ export const approvalHook = defineHook({
 
 Tokens are used to identify a specific hook and for resuming a hook. You can customize the token to be more specific to a use case.
 
-```typescript lineNumbers
+```ts lineNumbers
 const slackHook = defineHook<{ text: string; userId: string }>();
 
 export async function slackBotWorkflow(channelId: string) {

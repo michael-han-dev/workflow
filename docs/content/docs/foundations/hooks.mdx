@@ -18,7 +18,7 @@ When you create a hook, it generates a unique token that external systems can us
 
 Let's start with a simple example. Here's a workflow that creates a hook and waits for external data:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createHook } from "workflow";
 
 export async function approvalWorkflow() {
@@ -53,7 +53,7 @@ See the full API reference for [`createHook()`](/docs/api-reference/workflow/cre
 
 To send data to a waiting workflow, use [`resumeHook()`](/docs/api-reference/workflow-api/resume-hook) from an API route, server action, or any other external context:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeHook } from "workflow/api";
 
 // In an API route or external handler
@@ -81,7 +81,7 @@ By default, hooks generate a random token. However, you often want to use a **cu
 
 For example, imagine a Slack bot where each channel should have its own workflow instance:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createHook } from "workflow";
 
 export async function slackChannelBot(channelId: string) {
@@ -111,7 +111,7 @@ async function processMessage(message: SlackMessage) {
 
 Now your Slack webhook handler can deterministically resume the correct workflow:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeHook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
 Hooks are _reusable_ - they implement `AsyncIterable`, which means you can use `for await...of` to receive multiple events over time:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createHook } from "workflow";
 
 export async function dataCollectionWorkflow() {
@@ -177,7 +177,7 @@ See the full API reference for [`createWebhook()`](/docs/api-reference/workflow/
 
 Here's a simple webhook that receives HTTP requests:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook } from "workflow";
 
 export async function webhookWorkflow() {
@@ -210,7 +210,7 @@ Webhooks provide two ways to send custom HTTP responses: **static responses** an
 
 Use the `respondWith` option to provide a static response that will be sent automatically for every request:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook } from "workflow";
 
 export async function webhookWithStaticResponse() {
@@ -240,7 +240,7 @@ async function processData(data: any) {
 
 For dynamic responses based on the request content, set `respondWith: "manual"` and call the `respondWith()` method on the request:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook, type RequestWithResponse } from "workflow";
 
 async function sendCustomResponse(request: RequestWithResponse, message: string) {
@@ -286,7 +286,7 @@ When using `respondWith: "manual"`, the `respondWith()` method **must** be calle
 
 Like hooks, webhooks support iteration:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { createWebhook, type RequestWithResponse } from "workflow";
 
 async function respondToSlack(request: RequestWithResponse, text: string) {
@@ -365,7 +365,7 @@ async function postToSlack(channelId: string, message: string) {
 
 The [`defineHook()`](/docs/api-reference/workflow/define-hook) helper provides type safety and runtime validation between creating and resuming hooks using [Standard Schema v1](https://standardschema.dev). Use any compliant validator like Zod or Valibot:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { defineHook } from "workflow";
 import { z } from "zod";
 
@@ -430,7 +430,7 @@ When using custom tokens:
 
 Both hooks and webhooks support iteration, making them perfect for long-running event loops:
 
-```typescript
+```ts
 const hook = createHook<Event>();
 
 for await (const event of hook) {

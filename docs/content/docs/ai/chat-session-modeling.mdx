@@ -14,7 +14,7 @@ Each user message triggers a new workflow run. The client or API route owns the 
 
 <Tab value="Workflow">
 
-```typescript title="workflows/chat/workflow.ts" lineNumbers
+```ts title="workflows/chat/workflow.ts" lineNumbers
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import { flightBookingTools, FLIGHT_ASSISTANT_PROMPT } from "./steps/tools";
@@ -44,7 +44,7 @@ export async function chatWorkflow(messages: ModelMessage[]) {
 
 <Tab value="API Route">
 
-```typescript title="app/api/chat/route.ts" lineNumbers
+```ts title="app/api/chat/route.ts" lineNumbers
 import type { UIMessage } from "ai";
 import { createUIMessageStreamResponse, convertToModelMessages } from "ai";
 import { start } from "workflow/api";
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 
 Chat messages need to be stored somewhere—typically a database. In this example, we assume a route like `/chats/:id` passes the session ID, allowing us to fetch existing messages and persist new ones.
 
-```typescript title="app/chats/[id]/page.tsx" lineNumbers
+```ts title="app/chats/[id]/page.tsx" lineNumbers
 "use client";
 
 import { useChat } from "@ai-sdk/react";
@@ -131,7 +131,7 @@ A single workflow handles the entire conversation session across multiple turns,
 
 <Tab value="Workflow">
 
-```typescript title="workflows/chat/workflow.ts" lineNumbers
+```ts title="workflows/chat/workflow.ts" lineNumbers
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import { chatMessageHook } from "./hooks/chat-message";
@@ -179,7 +179,7 @@ export async function chatWorkflow(threadId: string, initialMessage: string) {
 
 Two endpoints: one to start the session, one to send follow-up messages.
 
-```typescript title="app/api/chat/route.ts" lineNumbers
+```ts title="app/api/chat/route.ts" lineNumbers
 import { createUIMessageStreamResponse } from "ai";
 import { start } from "workflow/api";
 import { chatWorkflow } from "@/workflows/chat/workflow";
@@ -195,7 +195,7 @@ export async function POST(req: Request) {
 }
 ```
 
-```typescript title="app/api/chat/[id]/route.ts" lineNumbers
+```ts title="app/api/chat/[id]/route.ts" lineNumbers
 import { chatMessageHook } from "@/workflows/chat/hooks/chat-message";
 
 export async function POST(
@@ -215,7 +215,7 @@ export async function POST(
 
 <Tab value="Hook Definition">
 
-```typescript title="workflows/chat/hooks/chat-message.ts" lineNumbers
+```ts title="workflows/chat/hooks/chat-message.ts" lineNumbers
 import { defineHook } from "workflow";
 import { z } from "zod";
 
@@ -232,7 +232,7 @@ export const chatMessageHook = defineHook({
 
 We can replace our `useChat` react hook with a custom hook that manages the chat session. This hook will handle switching between the API endpoints for creating a new thread and sending follow-up messages.
 
-```typescript title="hooks/use-multi-turn-chat.ts" lineNumbers
+```ts title="hooks/use-multi-turn-chat.ts" lineNumbers
 "use client";
 
 import type { UIMessage } from "ai";
@@ -324,7 +324,7 @@ The multi-turn pattern also easily enables multi-player chat sessions. New messa
 
 Internal system events like scheduled tasks, background jobs, or database triggers can inject updates into an active conversation.
 
-```typescript title="app/api/internal/flight-update/route.ts" lineNumbers
+```ts title="app/api/internal/flight-update/route.ts" lineNumbers
 import { chatMessageHook } from "@/workflows/chat/hooks/chat-message";
 
 // Called by your flight status monitoring system
@@ -345,7 +345,7 @@ export async function POST(req: Request) {
 
 External webhooks from third-party services (Stripe, Twilio, etc.) can notify the conversation of events.
 
-```typescript title="app/api/webhooks/payment/route.ts" lineNumbers
+```ts title="app/api/webhooks/payment/route.ts" lineNumbers
 import { chatMessageHook } from "@/workflows/chat/hooks/chat-message";
 
 export async function POST(req: Request) {
@@ -367,7 +367,7 @@ export async function POST(req: Request) {
 
 Multiple human users can participate in the same conversation. Each user's client connects to the same workflow stream.
 
-```typescript title="app/api/chat/[id]/route.ts" lineNumbers
+```ts title="app/api/chat/[id]/route.ts" lineNumbers
 import { chatMessageHook } from "@/workflows/chat/hooks/chat-message";
 import { getUser } from "@/lib/auth";
 

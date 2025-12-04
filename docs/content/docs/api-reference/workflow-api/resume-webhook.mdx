@@ -10,7 +10,7 @@ This function creates a `hook_received` event and re-triggers the workflow to co
 `resumeWebhook` is a runtime function that must be called from outside a workflow function.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeWebhook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -55,7 +55,7 @@ Throws an error if the webhook token is not found or invalid.
 
 Forward incoming HTTP requests to a webhook by token:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeWebhook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
 Handle GitHub webhook events and forward them to workflows:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeWebhook } from "workflow/api";
 import { verifyGitHubSignature } from "@/lib/github";
 
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 
 Process Slack slash commands and route them to workflow webhooks:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeWebhook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
 
 Route webhooks to different workflows based on tenant/organization:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { resumeWebhook } from "workflow/api";
 
 export async function POST(request: Request) {
@@ -194,7 +194,7 @@ async function verifyTenantApiKey(tenantId: string, apiKey: string | null) {
 
 Use `resumeWebhook` in a Next.js server action:
 
-```typescript lineNumbers
+```ts lineNumbers
 "use server";
 
 import { resumeWebhook } from "workflow/api";

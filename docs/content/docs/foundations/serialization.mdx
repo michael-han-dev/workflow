@@ -69,7 +69,7 @@ For example, consider how receiving a webhook request provides the entire `Reque
 instance into the workflow context. You may consume the body of that request directly
 in the workflow, which will be cached as a step result for future resumptions of the workflow:
 
-```typescript title="workflows/webhook.ts" lineNumbers
+```ts title="workflows/webhook.ts" lineNumbers
 import { createWebhook } from "workflow";
 
 export async function handleWebhookWorkflow() {
@@ -89,7 +89,7 @@ export async function handleWebhookWorkflow() {
 
 Because `Request` and `Response` are serializable, Workflow DevKit provides a `fetch` function that can be used directly in workflow functions:
 
-```typescript title="workflows/api-call.ts" lineNumbers
+```ts title="workflows/api-call.ts" lineNumbers
 import { fetch } from "workflow"; // [!code highlight]
 
 export async function apiWorkflow() {
@@ -105,7 +105,7 @@ export async function apiWorkflow() {
 
 The implementation is straightforward - `fetch` from workflow is a step function that wraps the standard `fetch`:
 
-```typescript title="Implementation" lineNumbers
+```ts title="Implementation" lineNumbers
 export async function fetch(...args: Parameters<typeof globalThis.fetch>) {
   "use step";
   return globalThis.fetch(...args);
@@ -120,7 +120,7 @@ This allows you to make HTTP requests directly in workflow functions while maint
 
 **Incorrect:**
 
-```typescript title="workflows/incorrect-mutation.ts" lineNumbers
+```ts title="workflows/incorrect-mutation.ts" lineNumbers
 export async function updateUserWorkflow(userId: string) {
   "use workflow";
 
@@ -139,7 +139,7 @@ async function updateUserStep(user: { id: string; name: string; email: string })
 
 **Correct - return the modified data:**
 
-```typescript title="workflows/correct-mutation.ts" lineNumbers
+```ts title="workflows/correct-mutation.ts" lineNumbers
 export async function updateUserWorkflow(userId: string) {
   "use workflow";
 

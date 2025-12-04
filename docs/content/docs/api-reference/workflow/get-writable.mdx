@@ -20,7 +20,7 @@ Use this function in your workflows and steps to produce streaming output that c
   `getWritable()` directly themselves.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getWritable } from "workflow";
 
 export async function myWorkflow() {
@@ -81,7 +81,7 @@ Returns a `WritableStream<W>` where `W` is the type of data you plan to write to
 
 Here's a simple example streaming text data:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { sleep, getWritable } from "workflow";
 
 export async function outputStreamWorkflow() {
@@ -118,7 +118,7 @@ async function stepCloseOutputStream(writable: WritableStream) {
 
 You can also call `getWritable()` directly inside step functions without passing it as a parameter:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { sleep, getWritable } from "workflow";
 
 export async function outputStreamFromStepWorkflow() {
@@ -157,7 +157,7 @@ async function stepCloseOutputStreamInside() {
 
 You can also use namespaced streams when calling `getWritable()` from steps:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getWritable } from "workflow";
 
 export async function multiStreamWorkflow() {
@@ -201,7 +201,7 @@ async function closeStreams() {
 
 Here's a more complex example showing how you might stream AI chat responses:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getWritable } from "workflow";
 import { generateId, streamText, type UIMessageChunk } from "ai";
 
@@ -287,3 +287,11 @@ async function endStream(writable: WritableStream<UIMessageChunk>) {
   await writable.close();
 }
 ```
+
+## Related Functions
+
+- [`getRun()`](/docs/api-reference/workflow-api/get-run) - Get a workflow run object including the `readable` stream
+
+## Learn More
+
+- [Streaming](/docs/foundations/streaming) - Learn about streaming patterns in workflows

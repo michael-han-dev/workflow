@@ -6,7 +6,7 @@ Retrieves the workflow run metadata and status information for a given run ID. T
 
 Use this function when you need to check workflow status, get timing information, or access workflow metadata without blocking on workflow completion.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getRun } from "workflow/api";
 
 const run = getRun("my-run-id");
@@ -48,7 +48,7 @@ export default WorkflowReadableStreamOptions;`}
 
 Check the current status of a workflow run:
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getRun } from "workflow/api";
 
 export async function GET(req: Request) {

@@ -6,7 +6,7 @@ When a `FatalError` is thrown in a step, it indicates that the workflow should n
 
 You should use this when you don't want a specific step to retry.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { FatalError } from "workflow"
 
 async function fallibleWorkflow() {
@@ -35,3 +35,8 @@ interface Error {
 }
 export default Error;`}
 />
+
+## Related Functions
+
+- [`RetryableError`](/docs/api-reference/workflow/retryable-error) - Signal that a step should be retried with custom options
+- [`fetch()`](/docs/api-reference/workflow/fetch) - Make HTTP requests with automatic retry handling

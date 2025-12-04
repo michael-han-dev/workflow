@@ -6,14 +6,14 @@ Returns additional metadata available in the current workflow function.
 
 You may want to use this function when you need to:
 
-* Log workflow run IDs
-* Access timing information of a workflow
+- Log workflow run IDs
+- Access timing information of a workflow
 
 <Callout>
 If you need to access step context, take a look at [`getStepMetadata`](/docs/api-reference/workflow/get-step-metadata).
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getWorkflowMetadata } from "workflow"
 
 async function testWorkflow() {
@@ -42,3 +42,7 @@ definition={`
 import type { WorkflowMetadata } from "workflow";
 export default WorkflowMetadata;`}
 />
+
+## Related Functions
+
+- [`getStepMetadata()`](/docs/api-reference/workflow/get-step-metadata) - Get metadata about the current step execution

@@ -8,7 +8,7 @@ By default, errors thrown inside steps are retried. Additionally, Workflow DevKi
 
 By default, steps retry up to 3 times on arbitrary errors. You can customize the number of retries by adding a `maxRetries` property to the step function.
 
-```typescript lineNumbers
+```ts lineNumbers
 async function callApi(endpoint: string) {
   "use step";
 
@@ -38,7 +38,7 @@ Steps get enqueued immediately after a failure. Read on to see how this can be c
 
 When your step needs to intentionally throw an error and skip retrying, simply throw a [`FatalError`](/docs/api-reference/workflow/fatal-error).
 
-```typescript lineNumbers
+```ts lineNumbers
 import { FatalError } from "workflow";
 
 async function callApi(endpoint: string) {
@@ -63,7 +63,7 @@ async function callApi(endpoint: string) {
 
 When you need to customize the delay on a retry, use [`RetryableError`](/docs/api-reference/workflow/retryable-error) and set the `retryAfter` property.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { FatalError, RetryableError } from "workflow";
 
 async function callApi(endpoint: string) {
@@ -93,7 +93,7 @@ async function callApi(endpoint: string) {
 
 This final example combines everything we've learned, along with [`getStepMetadata`](/docs/api-reference/workflow/get-step-metadata).
 
-```typescript lineNumbers
+```ts lineNumbers
 import { FatalError, RetryableError, getStepMetadata } from "workflow";
 
 async function callApi(endpoint: string) {
@@ -137,7 +137,7 @@ Key guidelines:
 - Ensure rollbacks are [idempotent](/docs/foundations/idempotency); they may run more than once.
 - Only enqueue a compensation after its forward step succeeds.
 
-```typescript lineNumbers
+```ts lineNumbers
 // Forward steps
 async function reserveInventory(orderId: string) {
   "use step";

@@ -12,7 +12,7 @@ A chat transport implementation for the AI SDK that provides reliable message st
 `WorkflowChatTransport` implements the [`ChatTransport`](https://ai-sdk.dev/docs/ai-sdk-ui/transport) interface from the AI SDK and is designed to work with workflow-based chat applications. It requires endpoints that return the `x-workflow-run-id` header to enable stream resumption.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { useChat } from "@ai-sdk/react";
 import { WorkflowChatTransport } from "@workflow/ai";
 
@@ -69,7 +69,7 @@ export default WorkflowChatTransportOptions;`}
 
 ### Basic Chat Setup
 
-```typescript
+```ts
 "use client";
 
 import { useChat } from "@ai-sdk/react";
@@ -112,7 +112,7 @@ export default function BasicChat() {
 
 ### With Session Persistence and Resumption
 
-```typescript
+```ts
 "use client";
 
 import { useChat } from "@ai-sdk/react";
@@ -180,7 +180,7 @@ export default function ChatWithResumption() {
 
 ### With Custom Request Configuration
 
-```typescript
+```ts
 "use client";
 
 import { useChat } from "@ai-sdk/react";

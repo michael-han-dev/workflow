@@ -8,7 +8,7 @@ Configures webpack/turbopack loaders to transform workflow code (`"use step"`/`"
 
 To enable `"use step"` and `"use workflow"` directives while developing locally or deploying to production, wrap your `nextConfig` with `withWorkflow`.
 
-```typescript title="next.config.ts" lineNumbers
+```ts title="next.config.ts" lineNumbers
 import { withWorkflow } from "workflow/next"; // [!code highlight]
 import type { NextConfig } from "next";
  
@@ -24,7 +24,7 @@ export default withWorkflow(nextConfig, workflowConfig); // [!code highlight]
 
 If you are exporting a function in your `next.config` you will need to ensure you call the function returned from `withWorkflow`.
 
-```typescript title="next.config.ts" lineNumbers
+```ts title="next.config.ts" lineNumbers
 import { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 import createNextIntlPlugin from "next-intl/plugin";

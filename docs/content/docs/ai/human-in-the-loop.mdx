@@ -48,7 +48,7 @@ Add a tool that allows the agent to deliberately pause execution until a human a
 
 Create a typed hook with a Zod schema for validation:
 
-```typescript title="workflow/steps/tools.ts" lineNumbers
+```ts title="workflow/steps/tools.ts" lineNumbers
 import { defineHook } from "workflow";
 import { z } from "zod";
 // ... existing imports ...
@@ -71,7 +71,7 @@ export const bookingApprovalHook = defineHook({
 
 Create a tool that creates a hook instance using the tool call ID as the token. The UI will use this ID to submit the approval.
 
-```typescript title="workflows/chat/steps/tools.ts" lineNumbers
+```ts title="workflows/chat/steps/tools.ts" lineNumbers
 import { z } from "zod";
 
 // ...
@@ -122,7 +122,7 @@ Note that the `defineHook().create()` function must be called from within a work
 
 Create a new API endpoint that the UI will call to submit the approval decision:
 
-```typescript title="app/api/approve-booking/route.ts" lineNumbers
+```ts title="app/api/approve-booking/route.ts" lineNumbers
 import { bookingApprovalHook } from "@/workflow/steps/tools";
 
 export async function POST(request: Request) {
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
 
 Build a new component that reacts to the tool call data, and allows the user to approve or reject the booking:
 
-```typescript title="components/booking-approval.tsx" lineNumbers
+```ts title="components/booking-approval.tsx" lineNumbers
 "use client";
 
 import { useState } from "react";
@@ -236,7 +236,7 @@ export function BookingApproval({ toolCallId, input, output }: BookingApprovalPr
 
 Use the component we just created to render the tool call and approval controls in your chat interface:
 
-```typescript title="app/page.tsx" lineNumbers
+```ts title="app/page.tsx" lineNumbers
 // ... existing imports ...
 import { BookingApproval } from "@/components/booking-approval";
 
@@ -313,7 +313,7 @@ export default function ChatPage() {
 
 For simpler cases where you don't need type-safe validation or programmatic resumption, you can use [`createWebhook()`](/docs/api-reference/workflow/create-webhook) directly. This generates a unique URL that can be called to resume the workflow:
 
-```typescript title="workflows/chat/steps/tools.ts" lineNumbers
+```ts title="workflows/chat/steps/tools.ts" lineNumbers
 import { createWebhook } from "workflow";
 import { z } from "zod";
 

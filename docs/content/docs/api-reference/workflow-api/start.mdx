@@ -4,7 +4,7 @@ title: start
 
 Start/enqueue a new workflow run.
 
-```typescript lineNumbers
+```ts lineNumbers
 import { start } from "workflow/api";
 import { myWorkflow } from "./workflows/my-workflow";
 
@@ -54,7 +54,7 @@ Learn more about [`WorkflowReadableStreamOptions`](/docs/api-reference/workflow-
 
 ### With Arguments
 
-```typescript
+```ts
 import { start } from "workflow/api";
 import { userSignupWorkflow } from "./workflows/user-signup";
 
@@ -63,7 +63,7 @@ const run = await start(userSignupWorkflow, ["user@example.com"]); // [!code hig
 
 ### With `StartOptions`
 
-```typescript
+```ts
 import { start } from "workflow/api";
 import { myWorkflow } from "./workflows/my-workflow";
 

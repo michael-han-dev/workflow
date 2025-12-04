@@ -14,7 +14,7 @@ You may want to use this function when you need to:
   This function can only be called inside a step function.
 </Callout>
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getStepMetadata } from "workflow";
 
 async function testWorkflow() {
@@ -31,7 +31,7 @@ async function logStepId() {
 
 ### Example: Use `stepId` as an idempotency key
 
-```typescript lineNumbers
+```ts lineNumbers
 import { getStepMetadata } from "workflow";
 
 async function chargeUser(userId: string, amount: number) {
@@ -74,3 +74,7 @@ export default getStepMetadata;`}
 import type { StepMetadata } from "workflow";
 export default StepMetadata;`}
 />
+
+## Related Functions
+
+- [`getWorkflowMetadata()`](/docs/api-reference/workflow/get-workflow-metadata) - Get metadata about the current workflow run
