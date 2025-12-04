@@ -1,4 +1,4 @@
-export function Intro({ framework }: { framework: string }) {
+export function GettingStartedIntro({ framework }: { framework: string }) {
   return (
     <p>
       This guide will walk through setting up your first workflow in a{' '}
