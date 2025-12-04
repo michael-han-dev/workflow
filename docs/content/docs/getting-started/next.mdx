@@ -1,7 +1,9 @@
 ---
 title: Next.js
-description: This guide will walk through setting up your first workflow in a Next.js app. Along the way, you'll learn more about the concepts that are fundamental to using the development kit in your own projects.
+description: Set up Workflow DevKit with Next.js for durable, long-running functions.
 ---
+
+<Intro framework="Next.js" />
 
 <Steps>
 
@@ -30,7 +32,7 @@ npm i workflow
 
 Wrap your `next.config.ts` with `withWorkflow()`. This enables usage of the `"use workflow"` and `"use step"` directives.
 
-```typescript title="next.config.ts" lineNumbers
+```ts title="next.config.ts" lineNumbers
 import { withWorkflow } from "workflow/next"; // [!code highlight]
 import type { NextConfig } from "next";
 
@@ -80,7 +82,7 @@ internal paths to prevent the proxy handler from running on them.
 
 Add `.well-known/workflow/*` to your middleware's exclusion list:
 
-```typescript title="proxy.ts" lineNumbers
+```ts title="proxy.ts" lineNumbers
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -112,7 +114,7 @@ This ensures that internal Workflow paths are not intercepted by your middleware
 
 Create a new file for our first workflow:
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { sleep } from "workflow";
 
 export async function handleUserSignup(email: string) {
@@ -133,14 +135,14 @@ export async function handleUserSignup(email: string) {
 
 We'll fill in those functions next, but let's take a look at this code:
 
-* We define a **workflow** function with the directive `"use workflow"`. Think of the workflow function as the _orchestrator_ of individual **steps**.
-* The Workflow DevKit's `sleep` function allows us to suspend execution of the workflow without using up any resources. A sleep can be a few seconds, hours, days, or even months long.
+- We define a **workflow** function with the directive `"use workflow"`. Think of the workflow function as the _orchestrator_ of individual **steps**.
+- The Workflow DevKit's `sleep` function allows us to suspend execution of the workflow without using up any resources. A sleep can be a few seconds, hours, days, or even months long.
 
 ## Create Your Workflow Steps
 
 Let's now define those missing functions.
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { FatalError } from "workflow"
 
 // Our workflow function defined earlier
@@ -179,9 +181,9 @@ async function sendOnboardingEmail(user: { id: string; email: string}) {
 
 Taking a look at this code:
 
-* Business logic lives inside **steps**. When a step is invoked inside a **workflow**, it gets enqueued to run on a separate request while the workflow is suspended, just like `sleep`.
-* If a step throws an error, like in `sendWelcomeEmail`, the step will automatically be retried until it succeeds (or hits the step's max retry count).
-* Steps can throw a `FatalError` if an error is intentional and should not be retried.
+- Business logic lives inside **steps**. When a step is invoked inside a **workflow**, it gets enqueued to run on a separate request while the workflow is suspended, just like `sleep`.
+- If a step throws an error, like in `sendWelcomeEmail`, the step will automatically be retried until it succeeds (or hits the step's max retry count).
+- Steps can throw a `FatalError` if an error is intentional and should not be retried.
 
 <Callout>
 We'll dive deeper into workflows, steps, and other ways to suspend or handle events in [Foundations](/docs/foundations).
@@ -195,7 +197,7 @@ We'll dive deeper into workflows, steps, and other ways to suspend or handle eve
 
 To invoke your new workflow, we'll need to add your workflow to a `POST` API Route Handler, `app/api/signup/route.ts`, with the following code:
 
-```typescript title="app/api/signup/route.ts"
+```ts title="app/api/signup/route.ts"
 import { start } from "workflow/api";
 import { handleUserSignup } from "@/workflows/user-signup";
 import { NextResponse } from "next/server";
@@ -257,6 +259,6 @@ Check the [Deploying](/docs/deploying) section to learn how your workflows can b
 
 ## Next Steps
 
-* Learn more about the [Foundations](/docs/foundations).
-* Check [Errors](/docs/errors) if you encounter issues.
-* Explore the [API Reference](/docs/api-reference).
+- Learn more about the [Foundations](/docs/foundations).
+- Check [Errors](/docs/errors) if you encounter issues.
+- Explore the [API Reference](/docs/api-reference).

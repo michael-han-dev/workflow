@@ -1,10 +1,9 @@
 ---
 title: Fastify
+description: Set up Workflow DevKit with Fastify for durable, long-running functions.
 ---
 
-This guide will walk through setting up your first workflow in a Fastify app. Along the way, you'll learn more about the concepts that are fundamental to using the development kit in your own projects.
-
----
+<Intro framework="Fastify" />
 
 <Steps>
 
@@ -49,7 +48,7 @@ npm i -D @types/node typescript
 
 Create a new file `nitro.config.ts` for your Nitro configuration with module `workflow/nitro`. This enables usage of the `"use workflow"` and `"use step"` directives
 
-```typescript title="nitro.config.ts" lineNumbers
+```ts title="nitro.config.ts" lineNumbers
 import { defineNitroConfig } from "nitro/config";
 
 export default defineNitroConfig({
@@ -109,7 +108,7 @@ To use the Nitro builder, update your `package.json` to include the following sc
 
 Create a new file for our first workflow:
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { sleep } from "workflow";
 
 export async function handleUserSignup(email: string) {
@@ -120,6 +119,8 @@ export async function handleUserSignup(email: string) {
 
   await sleep("5s"); // Pause for 5s - doesn't consume any resources
   await sendOnboardingEmail(user);
+
+  console.log("Workflow is complete! Run 'npx workflow web' to inspect your run")
 
   return { userId: user.id, status: "onboarded" };
 }
@@ -132,7 +133,7 @@ We'll fill in those functions next, but let's take a look at this code:
 ## Create Your Workflow Steps
 
 Let's now define those missing functions:
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { FatalError } from "workflow";
 
 // Our workflow function defined earlier
@@ -179,7 +180,7 @@ Taking a look at this code:
 
 To invoke your new workflow, we'll create both the Fastify app and a new API route handler at `src/index.ts` with the following code:
 
-```typescript title="src/index.ts"
+```ts title="src/index.ts" lineNumbers
 import Fastify from "fastify";
 import { start } from "workflow/api";
 import { handleUserSignup } from "../workflows/user-signup.js";

@@ -1,7 +1,9 @@
 ---
 title: Nuxt
-description: This guide will walk through setting up your first workflow in a Nuxt app. Along the way, you'll learn more about the concepts that are fundamental to using the development kit in your own projects.
+description: Set up Workflow DevKit with Nuxt for durable, long-running functions.
 ---
+
+<Intro framework="Nuxt" />
 
 <Steps>
 
@@ -30,7 +32,7 @@ npm i workflow
 
 Add `workflow` to your `nuxt.config.ts`. This automatically configures the Nitro integration and enables usage of the `"use workflow"` and `"use step"` directives.
 
-```typescript title="nuxt.config.ts" lineNumbers
+```ts title="nuxt.config.ts" lineNumbers
 import { defineNuxtConfig } from "nuxt/config";
 
 export default defineNuxtConfig({
@@ -49,7 +51,7 @@ This will also automatically enable the TypeScript plugin, which provides helpfu
     <AccordionContent className="[&_p]:my-2">
 The TypeScript plugin is enabled by default. If you need to disable it, you can configure it in your `nuxt.config.ts`:
 
-```typescript title="nuxt.config.ts" lineNumbers
+```ts title="nuxt.config.ts" lineNumbers
 export default defineNuxtConfig({
   modules: ["workflow/nuxt"],
   workflow: {
@@ -72,7 +74,7 @@ export default defineNuxtConfig({
 
 Create a new file for our first workflow:
 
-```typescript title="server/workflows/user-signup.ts" lineNumbers
+```ts title="server/workflows/user-signup.ts" lineNumbers
 import { sleep } from "workflow";
 
 export async function handleUserSignup(email: string) {
@@ -99,7 +101,7 @@ We'll fill in those functions next, but let's take a look at this code:
 
 Let's now define those missing functions.
 
-```typescript title="server/workflows/user-signup.ts" lineNumbers
+```ts title="server/workflows/user-signup.ts" lineNumbers
 import { FatalError } from "workflow";
 
 // Our workflow function defined earlier
@@ -155,9 +157,15 @@ Taking a look at this code:
 
 To invoke your new workflow, we'll create a new API route handler at `server/api/signup.post.ts` with the following code:
 
+<<<<<<< HEAD
 ```typescript title="server/api/signup.post.ts"
 import { start } from "workflow/api";
 import { defineEventHandler, readBody } from "h3";
+=======
+```ts title="server/api/signup.post.ts" lineNumbers
+import { start } from 'workflow/api';
+import { defineEventHandler, readBody } from 'h3';
+>>>>>>> b82f27c8 (docs: update getting started intro comp)
 import { handleUserSignup } from "../workflows/user-signup";
 
 export default defineEventHandler(async (event) => {

@@ -1,7 +1,9 @@
 ---
 title: Nitro
-description: This guide will walk through setting up your first workflow in a Nitro v3 project. Along the way, you'll learn more about the concepts that are fundamental to using the development kit in your own projects.
+description: Set up Workflow DevKit with Nitro for durable, long-running functions.
 ---
+
+<Intro framework="Nitro" />
 
 <Steps>
 
@@ -30,7 +32,7 @@ npm i workflow
 
 Add `workflow/nitro` module to your `nitro.config.ts` This enables usage of the `"use workflow"` and `"use step"` directives.
 
-```typescript title="nitro.config.ts" lineNumbers
+```ts title="nitro.config.ts" lineNumbers
 import { defineConfig } from "nitro";
 
 export default defineConfig({
@@ -74,7 +76,7 @@ To enable helpful hints in your IDE, setup the workflow plugin in `tsconfig.json
 
 Create a new file for our first workflow:
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { sleep } from "workflow";
 
 export async function handleUserSignup(email: string) {
@@ -101,7 +103,7 @@ We'll fill in those functions next, but let's take a look at this code:
 
 Let's now define those missing functions.
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { FatalError } from "workflow";
 
 // Our workflow function defined earlier
@@ -157,9 +159,15 @@ Taking a look at this code:
 
 To invoke your new workflow, we'll create a new API route handler at `server/api/signup.post.ts` with the following code:
 
+<<<<<<< HEAD
 ```typescript title="server/api/signup.post.ts"
 import { start } from "workflow/api";
 import { defineEventHandler } from "nitro/h3";
+=======
+```ts title="server/api/signup.post.ts" lineNumbers
+import { start } from 'workflow/api';
+import { defineEventHandler } from 'nitro/h3';
+>>>>>>> b82f27c8 (docs: update getting started intro comp)
 import { handleUserSignup } from "../../workflows/user-signup";
 
 export default defineEventHandler(async ({ req }) => {

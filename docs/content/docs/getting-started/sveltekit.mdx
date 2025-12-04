@@ -1,7 +1,9 @@
 ---
 title: SvelteKit
-description: This guide will walk through setting up your first workflow in a SvelteKit app. Along the way, you'll learn more about the concepts that are fundamental to using the development kit in your own projects.
+description: Set up Workflow DevKit with SvelteKit for durable, long-running functions.
 ---
+
+<Intro framework="SvelteKit" />
 
 <Steps>
 
@@ -30,7 +32,7 @@ npm i workflow
 
 Add `workflowPlugin()` to your Vite config. This enables usage of the `"use workflow"` and `"use step"` directives.
 
-```typescript title="vite.config.ts" lineNumbers
+```ts title="vite.config.ts" lineNumbers
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
 import { workflowPlugin } from "workflow/sveltekit"; // [!code highlight]
@@ -74,7 +76,7 @@ To enable helpful hints in your IDE, setup the workflow plugin in `tsconfig.json
 
 Create a new file for our first workflow:
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { sleep } from "workflow";
 
 export async function handleUserSignup(email: string) {
@@ -95,14 +97,14 @@ export async function handleUserSignup(email: string) {
 
 We'll fill in those functions next, but let's take a look at this code:
 
-* We define a **workflow** function with the directive `"use workflow"`. Think of the workflow function as the _orchestrator_ of individual **steps**.
-* The Workflow DevKit's `sleep` function allows us to suspend execution of the workflow without using up any resources. A sleep can be a few seconds, hours, days, or even months long.
+- We define a **workflow** function with the directive `"use workflow"`. Think of the workflow function as the _orchestrator_ of individual **steps**.
+- The Workflow DevKit's `sleep` function allows us to suspend execution of the workflow without using up any resources. A sleep can be a few seconds, hours, days, or even months long.
 
 ## Create Your Workflow Steps
 
 Let's now define those missing functions.
 
-```typescript title="workflows/user-signup.ts" lineNumbers
+```ts title="workflows/user-signup.ts" lineNumbers
 import { FatalError } from "workflow"
 
 // Our workflow function defined earlier
@@ -141,9 +143,9 @@ async function sendOnboardingEmail(user: { id: string; email: string}) {
 
 Taking a look at this code:
 
-* Business logic lives inside **steps**. When a step is invoked inside a **workflow**, it gets enqueued to run on a separate request while the workflow is suspended, just like `sleep`.
-* If a step throws an error, like in `sendWelcomeEmail`, the step will automatically be retried until it succeeds (or hits the step's max retry count).
-* Steps can throw a `FatalError` if an error is intentional and should not be retried.
+- Business logic lives inside **steps**. When a step is invoked inside a **workflow**, it gets enqueued to run on a separate request while the workflow is suspended, just like `sleep`.
+- If a step throws an error, like in `sendWelcomeEmail`, the step will automatically be retried until it succeeds (or hits the step's max retry count).
+- Steps can throw a `FatalError` if an error is intentional and should not be retried.
 
 <Callout>
 We'll dive deeper into workflows, steps, and other ways to suspend or handle events in [Foundations](/docs/foundations).
@@ -157,7 +159,7 @@ We'll dive deeper into workflows, steps, and other ways to suspend or handle eve
 
 To invoke your new workflow, we'll have to add your workflow to a `POST` API route handler, `src/routes/api/signup/+server.ts` with the following code:
 
-```typescript title="src/routes/api/signup/+server.ts"
+```ts title="src/routes/api/signup/+server.ts" lineNumbers
 import { start } from "workflow/api";
 import { handleUserSignup } from "../../../../workflows/user-signup";
 import { json, type RequestHandler } from "@sveltejs/kit";
@@ -222,6 +224,6 @@ Check the [Deploying](/docs/deploying) section to learn how your workflows can b
 
 ## Next Steps
 
-* Learn more about the [Foundations](/docs/foundations).
-* Check [Errors](/docs/errors) if you encounter issues.
-* Explore the [API Reference](/docs/api-reference).
+- Learn more about the [Foundations](/docs/foundations).
+- Check [Errors](/docs/errors) if you encounter issues.
+- Explore the [API Reference](/docs/api-reference).
