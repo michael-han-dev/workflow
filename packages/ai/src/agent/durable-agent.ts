@@ -13,6 +13,7 @@ import {
   type LanguageModelUsage,
   type ModelMessage,
   Output,
+  readUIMessageStream,
   type StepResult,
   type StopCondition,
   type StreamTextOnStepFinishCallback,
@@ -25,7 +26,6 @@ import { convertToLanguageModelPrompt, standardizePrompt } from 'ai/internal';
 import { FatalError } from 'workflow';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
-import { UIMessageAccumulator } from './ui-message-accumulator.js';
 
 // Re-export for consumers
 export type { CompatibleLanguageModel } from './types.js';
@@ -730,16 +730,14 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       };
     }
 
-    // Set up UIMessage accumulator if requested
-    const accumulator = options.collectUIMessages
-      ? new UIMessageAccumulator(options.writable)
-      : null;
-    const effectiveWritable = accumulator?.writable ?? options.writable;
+    // Track collected UI chunks if collectUIMessages is enabled
+    const collectUIChunks = options.collectUIMessages ?? false;
+    const allUIChunks: UIMessageChunk[] = [];
 
     const iterator = streamTextIterator({
       model: this.model,
       tools: effectiveTools as ToolSet,
-      writable: effectiveWritable,
+      writable: options.writable,
       prompt: modelPrompt,
       stopConditions: options.stopWhen,
       maxSteps: options.maxSteps,
@@ -756,6 +754,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         | StreamTextTransform<ToolSet>
         | Array<StreamTextTransform<ToolSet>>,
       responseFormat: options.experimental_output?.responseFormat,
+      collectUIChunks,
     });
 
     // Track the final conversation messages from the iterator
@@ -780,6 +779,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           messages: iterMessages,
           step,
           context,
+          uiChunks,
         } = result.value;
         if (step) {
           // The step result is compatible with StepResult<TTools> since we're using the same tools
@@ -788,6 +788,10 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         // Update context if changed by prepareStep
         if (context !== undefined) {
           experimentalContext = context;
+        }
+        // Collect UI chunks if enabled
+        if (uiChunks && uiChunks.length > 0) {
+          allUIChunks.push(...uiChunks);
         }
 
         // Only execute tools if there are tool calls
@@ -833,23 +837,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     const sendFinish = options.sendFinish ?? true;
     const preventClose = options.preventClose ?? false;
 
-    // Handle stream closing with special care for accumulator
-    if (accumulator) {
-      // When using accumulator, we need to:
-      // 1. Write finish chunk through accumulator (if sendFinish is true) so it's captured
-      // 2. Close the accumulator's writable to signal completion
-      // 3. Handle the original stream's close separately (finish already forwarded through accumulator)
-      if (sendFinish) {
-        await writeFinishChunk(effectiveWritable);
-      }
-      // Always close the accumulator's writable so getMessages() can complete
-      await effectiveWritable.close();
-      // Now close the original stream (sendFinish=false since finish already written through accumulator)
-      if (!preventClose) {
-        await closeStream(options.writable, preventClose, false);
-      }
-    } else if (sendFinish || !preventClose) {
-      // No accumulator - use standard close logic
+    // Handle stream closing
+    if (sendFinish || !preventClose) {
       await closeStream(options.writable, preventClose, sendFinish);
     }
 
@@ -898,8 +887,9 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     }
 
     // Collect accumulated UI messages if requested
-    const uiMessages = accumulator
-      ? await accumulator.getMessages()
+    // This requires a step function since it performs stream operations
+    const uiMessages = collectUIChunks
+      ? await convertChunksToUIMessages(allUIChunks)
       : undefined;
 
     return {
@@ -954,6 +944,59 @@ async function closeStream(
   if (!preventClose) {
     await writable.close();
   }
+}
+
+/**
+ * Convert UIMessageChunks to UIMessage[] using the AI SDK's readUIMessageStream.
+ * This must be a step function because it performs stream operations.
+ *
+ * @param chunks - The collected UIMessageChunks to convert
+ * @returns The accumulated UIMessage array
+ */
+async function convertChunksToUIMessages(
+  chunks: UIMessageChunk[]
+): Promise<UIMessage[]> {
+  'use step';
+
+  if (chunks.length === 0) {
+    return [];
+  }
+
+  // Create a readable stream from the collected chunks.
+  // AI SDK only supports conversion from UIMessageChunk[] to UIMessage[]
+  // as a streaming operation, so we need to wrap the chunks in a stream.
+  const chunkStream = new ReadableStream<UIMessageChunk>({
+    start: (controller) => {
+      for (const chunk of chunks) {
+        controller.enqueue(chunk);
+      }
+      controller.close();
+    },
+  });
+
+  // Use the AI SDK's readUIMessageStream to convert chunks to messages
+  const messageStream = readUIMessageStream({
+    stream: chunkStream,
+    onError: (error) => {
+      console.error('Error processing UI message chunks:', error);
+    },
+  });
+
+  // Collect all message updates and return the final state
+  const messages: UIMessage[] = [];
+  for await (const message of messageStream) {
+    // readUIMessageStream yields updated versions of the message as it's built
+    // We want to collect the final state of each message
+    // Messages are identified by their id, so we update in place
+    const existingIndex = messages.findIndex((m) => m.id === message.id);
+    if (existingIndex >= 0) {
+      messages[existingIndex] = message;
+    } else {
+      messages.push(message);
+    }
+  }
+
+  return messages;
 }
 
 async function executeTool(
