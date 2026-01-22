@@ -406,7 +406,7 @@ export abstract class BaseBuilder {
           const { workflowManifest: fileManifest } = await applySwcTransform(
             relativeFilepath,
             source,
-            'step'
+            'workflow'
           );
           if (fileManifest.workflows) {
             workflowManifest.workflows = Object.assign(
