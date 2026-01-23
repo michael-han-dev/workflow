@@ -4,9 +4,10 @@ import { defineNitroPlugin } from 'nitro/~internal/runtime/plugin';
 // Needed since we test this in CI
 export default defineNitroPlugin(async () => {
   if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres') {
-    import('workflow/runtime').then(async ({ getWorld }) => {
+    import('workflow/runtime').then(async ({ initWorld }) => {
       console.log('Starting Postgres World...');
-      await getWorld().start?.();
+      const world = await initWorld();
+      await world.start?.();
     });
   }
 });

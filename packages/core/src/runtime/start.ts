@@ -9,7 +9,7 @@ import { dehydrateWorkflowArguments } from '../serialization.js';
 import * as Attribute from '../telemetry/semantic-conventions.js';
 import { serializeTraceCarrier, trace } from '../telemetry.js';
 import { waitedUntil } from '../util.js';
-import { getWorld } from './world.js';
+import { initWorld } from './world.js';
 
 export interface StartOptions {
   /**
@@ -93,7 +93,7 @@ export async function start<TArgs extends unknown[], TResult>(
         ...Attribute.WorkflowArgumentsCount(args.length),
       });
 
-      const world = opts?.world ?? getWorld();
+      const world = opts?.world ?? (await initWorld());
       const deploymentId = opts.deploymentId ?? (await world.getDeploymentId());
       const ops: Promise<void>[] = [];
       const { promise: runIdPromise, resolve: resolveRunId } =

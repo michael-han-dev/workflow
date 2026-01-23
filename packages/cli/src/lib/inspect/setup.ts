@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { createWorld } from '@workflow/core/runtime';
+import { initWorld } from '@workflow/core/runtime';
 import chalk from 'chalk';
 import terminalLink from 'terminal-link';
 import XDGAppPaths from 'xdg-app-paths';
@@ -40,7 +40,7 @@ export const setupCliWorld = async (
   },
   version: string,
   ignoreLocalWorldConfigError = false
-): Promise<Awaited<ReturnType<typeof createWorld>> | null> => {
+): Promise<Awaited<ReturnType<typeof initWorld>> | null> => {
   setJsonMode(Boolean(flags.json));
   setVerboseMode(Boolean(flags.verbose));
 
@@ -123,6 +123,6 @@ export const setupCliWorld = async (
   }
 
   logger.debug('Initializing world');
-  const world = await createWorld();
+  const world = await initWorld();
   return world;
 };

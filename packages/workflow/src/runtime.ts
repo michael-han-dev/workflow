@@ -6,6 +6,7 @@ export {
   type HealthCheckEndpoint,
   type HealthCheckOptions,
   type HealthCheckResult,
+  initWorld,
   setWorld,
   stepEntrypoint,
   workflowEntrypoint,

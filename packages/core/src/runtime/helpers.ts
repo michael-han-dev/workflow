@@ -8,7 +8,7 @@ import { HealthCheckPayloadSchema } from '@workflow/world';
 import { monotonicFactory } from 'ulid';
 import * as Attribute from '../telemetry/semantic-conventions.js';
 import { getSpanKind, trace } from '../telemetry.js';
-import { getWorld } from './world.js';
+import { initWorld } from './world.js';
 
 /** Default timeout for health checks in milliseconds */
 const DEFAULT_HEALTH_CHECK_TIMEOUT = 30_000;
@@ -65,7 +65,7 @@ export async function handleHealthCheckMessage(
   healthCheck: HealthCheckPayload,
   endpoint: 'workflow' | 'step'
 ): Promise<void> {
-  const world = getWorld();
+  const world = await initWorld();
   const streamName = getHealthCheckStreamName(healthCheck.correlationId);
   const response = JSON.stringify({
     healthy: true,
@@ -253,7 +253,7 @@ export async function getAllWorkflowRunEvents(runId: string): Promise<Event[]> {
   let cursor: string | null = null;
   let hasMore = true;
 
-  const world = getWorld();
+  const world = await initWorld();
   while (hasMore) {
     // TODO: we're currently loading all the data with resolveRef behaviour. We need to update this
     // to lazyload the data from the world instead so that we can optimize and make the event log loading

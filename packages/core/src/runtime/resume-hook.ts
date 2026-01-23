@@ -13,7 +13,7 @@ import { WEBHOOK_RESPONSE_WRITABLE } from '../symbols.js';
 import * as Attribute from '../telemetry/semantic-conventions.js';
 import { getSpanContextForTraceCarrier, trace } from '../telemetry.js';
 import { waitedUntil } from '../util.js';
-import { getWorld } from './world.js';
+import { initWorld } from './world.js';
 
 /**
  * Get the hook by token to find the associated workflow run,
@@ -23,7 +23,7 @@ import { getWorld } from './world.js';
  * @param token - The unique token identifying the hook
  */
 export async function getHookByToken(token: string): Promise<Hook> {
-  const world = getWorld();
+  const world = await initWorld();
   const hook = await world.hooks.getByToken(token);
   if (typeof hook.metadata !== 'undefined') {
     hook.metadata = hydrateStepArguments(hook.metadata as any, [], hook.runId);
@@ -66,7 +66,7 @@ export async function resumeHook<T = any>(
 ): Promise<Hook> {
   return await waitedUntil(() => {
     return trace('HOOK.resume', async (span) => {
-      const world = getWorld();
+      const world = await initWorld();
 
       try {
         const hook =
