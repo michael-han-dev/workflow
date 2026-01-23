@@ -12,6 +12,10 @@ import { getWorld } from "workflow/runtime";
 const world = getWorld();
 ```
 
+<Callout type="info">
+  For external world modules like `@workflow/world-postgres`, use [`initWorld()`](/docs/api-reference/workflow-api/init-world) instead. External worlds require async initialization to support ES modules.
+</Callout>
+
 ## API Signature
 
 ### Parameters

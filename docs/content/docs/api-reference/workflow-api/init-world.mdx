@@ -1,0 +1,90 @@
+---
+title: initWorld
+---
+
+Initializes and returns the World instance asynchronously. This function supports external world modules (like `@workflow/world-postgres`) that are ES modules and require async loading.
+
+For built-in worlds (`local` and `vercel`), this function works identically to `getWorld()` but returns a Promise. For external worlds, this is the required initialization method.
+
+```typescript lineNumbers
+import { initWorld } from "workflow/runtime";
+
+const world = await initWorld();
+```
+
+## API Signature
+
+### Parameters
+
+This function does not accept any parameters.
+
+### Returns
+
+Returns a `Promise<World>` that resolves to a `World` object:
+
+<TSDoc
+definition={`
+import type { World } from "@workflow/world";
+export default World;`}
+showSections={["returns"]}
+/>
+
+## Examples
+
+### Initialize External World (Postgres)
+
+Initialize an external world module like `@workflow/world-postgres`:
+
+```typescript lineNumbers
+import { initWorld } from "workflow/runtime";
+
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "edge") {
+    console.log("Starting Postgres World...");
+    const world = await initWorld(); // [!code highlight]
+    await world.start?.();
+    console.log("Postgres World started");
+  }
+}
+```
+
+### List Workflow Runs with External World
+
+```typescript lineNumbers
+import { initWorld } from "workflow/runtime";
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const cursor = url.searchParams.get("cursor") ?? undefined;
+
+  try {
+    const world = await initWorld(); // [!code highlight]
+    const runs = await world.runs.list({
+      pagination: { cursor },
+    });
+
+    return Response.json(runs);
+  } catch (error) {
+    return Response.json(
+      { error: "Failed to list workflow runs" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## When to Use
+
+| World Type | Function to Use |
+|------------|-----------------|
+| Built-in (`local`, `vercel`) | `getWorld()` or `initWorld()` |
+| External (`@workflow/world-postgres`, etc.) | `initWorld()` (required) |
+
+<Callout type="info">
+  The world instance is cached globally after the first call. Subsequent calls to `initWorld()` return the same cached instance.
+</Callout>
+
+## Related Functions
+
+- [`getWorld()`](/docs/api-reference/workflow-api/get-world) - Synchronous world access for built-in worlds.
+- [`start()`](/docs/api-reference/workflow-api/start) - Start a new workflow run.
