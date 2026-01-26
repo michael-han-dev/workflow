@@ -23,8 +23,6 @@ function defaultWorld(): 'vercel' | 'local' {
  */
 function createVercelWorldFromEnv(): World {
   return createVercelWorld({
-    baseUrl: process.env.WORKFLOW_VERCEL_BACKEND_URL,
-    skipProxy: process.env.WORKFLOW_VERCEL_SKIP_PROXY === 'true',
     token: process.env.WORKFLOW_VERCEL_AUTH_TOKEN,
     projectConfig: {
       environment: process.env.WORKFLOW_VERCEL_ENV,
