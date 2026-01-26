@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { getHookByToken, getRun, resumeHook, start } from 'workflow/api';
-import { getWorld } from 'workflow/runtime';
+import { initWorld } from 'workflow/runtime';
 import * as z from 'zod';
 import flow from '../.well-known/workflow/v1/flow.js';
 import manifest from '../.well-known/workflow/v1/manifest.json' with {
@@ -65,7 +65,8 @@ const app = new Hono()
     return ctx.json({ runId, hookId: hook.hookId });
   })
   .get('/runs/:runId', async (ctx) => {
-    return ctx.json(await getWorld().runs.get(ctx.req.param('runId')));
+    const world = await initWorld();
+    return ctx.json(await world.runs.get(ctx.req.param('runId')));
   })
   .get('/runs/:runId/readable', async (ctx) => {
     const runId = ctx.req.param('runId');
@@ -99,7 +100,7 @@ serve(
       }
     }
 
-    const world = getWorld();
+    const world = await initWorld();
     if (world.start) {
       console.log(`starting background tasks...`);
       await world.start().then(
