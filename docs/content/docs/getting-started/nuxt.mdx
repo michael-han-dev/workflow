@@ -1,16 +1,14 @@
 ---
 title: Nuxt
-description: Set up Workflow DevKit with Nuxt for durable, long-running functions.
+description: This guide will walk through setting up your first workflow in a Nuxt app. Along the way, you'll learn more about the concepts that are fundamental to using the development kit in your own projects.
 ---
-
-<GettingStartedIntro framework="Nuxt" />
 
 <Steps>
 
 <Step>
 ## Create Your Nuxt Project
 
-Start by creating a new Nuxt project. This command will create a new directory named `nuxt-app` and set up a Nuxt project inside it.
+Start by creating a new Nuxt project. This command will create a new directory named `nuxt-app` and setup a Nuxt project inside it.
 
 ```bash
 npm create nuxt@latest nuxt-app
@@ -32,7 +30,7 @@ npm i workflow
 
 Add `workflow` to your `nuxt.config.ts`. This automatically configures the Nitro integration and enables usage of the `"use workflow"` and `"use step"` directives.
 
-```ts title="nuxt.config.ts" lineNumbers
+```typescript title="nuxt.config.ts" lineNumbers
 import { defineNuxtConfig } from "nuxt/config";
 
 export default defineNuxtConfig({
@@ -51,7 +49,8 @@ This will also automatically enable the TypeScript plugin, which provides helpfu
     <AccordionContent className="[&_p]:my-2">
 The TypeScript plugin is enabled by default. If you need to disable it, you can configure it in your `nuxt.config.ts`:
 
-```ts title="nuxt.config.ts" lineNumbers
+{/* @skip-typecheck: incomplete code sample */}
+```typescript title="nuxt.config.ts" lineNumbers
 export default defineNuxtConfig({
   modules: ["workflow/nuxt"],
   workflow: {
@@ -74,7 +73,7 @@ export default defineNuxtConfig({
 
 Create a new file for our first workflow:
 
-```ts title="server/workflows/user-signup.ts" lineNumbers
+```typescript title="server/workflows/user-signup.ts" lineNumbers
 import { sleep } from "workflow";
 
 export async function handleUserSignup(email: string) {
@@ -101,7 +100,7 @@ We'll fill in those functions next, but let's take a look at this code:
 
 Let's now define those missing functions.
 
-```ts title="server/workflows/user-signup.ts" lineNumbers
+```typescript title="server/workflows/user-signup.ts" lineNumbers
 import { FatalError } from "workflow";
 
 // Our workflow function defined earlier
@@ -153,11 +152,11 @@ Taking a look at this code:
 
 <Step>
 
-## Create Your Route Handler
+## Create Your API Route
 
 To invoke your new workflow, we'll create a new API route handler at `server/api/signup.post.ts` with the following code:
 
-```ts title="server/api/signup.post.ts" lineNumbers
+```typescript title="server/api/signup.post.ts"
 import { start } from "workflow/api";
 import { defineEventHandler, readBody } from "h3";
 import { handleUserSignup } from "../workflows/user-signup";
@@ -216,9 +215,9 @@ npx workflow inspect runs
 
 </Steps>
 
-## Deploying to Production
+## Deploying to production
 
-Workflow DevKit apps currently work best when deployed to [Vercel](https://vercel.com/home) and need no special configuration.
+Workflow DevKit apps currently work best when deployed to [Vercel](https://vercel.com/home) and needs no special configuration.
 
 Check the [Deploying](/docs/deploying) section to learn how your workflows can be deployed elsewhere.
 

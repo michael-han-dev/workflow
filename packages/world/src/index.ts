@@ -10,6 +10,7 @@ export { HookSchema } from './hooks.js';
 export type * from './interfaces.js';
 export type * from './queue.js';
 export {
+  HealthCheckPayloadSchema,
   MessageId,
   QueuePayloadSchema,
   QueuePrefix,
@@ -30,3 +31,10 @@ export {
 } from './shared.js';
 export type * from './steps.js';
 export { StepSchema, StepStatusSchema } from './steps.js';
+export type { SpecVersion } from './spec-version.js';
+export {
+  SPEC_VERSION_LEGACY,
+  SPEC_VERSION_CURRENT,
+  isLegacySpecVersion,
+  requiresNewerWorld,
+} from './spec-version.js';

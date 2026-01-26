@@ -12,7 +12,8 @@ Workflows use special directives to mark code for transformation by the Workflow
 
 Workflows use two directives to mark functions for special handling:
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 export async function handleUserSignup(email: string) {
   "use workflow"; // [!code highlight]
 
@@ -69,7 +70,8 @@ flowchart LR
 
 **Input:**
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 export async function createUser(email: string) {
   "use step";
   return { id: crypto.randomUUID(), email };
@@ -78,7 +80,8 @@ export async function createUser(email: string) {
 
 **Output:**
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 import { registerStepFunction } from "workflow/internal/private"; // [!code highlight]
 
 export async function createUser(email: string) {
@@ -106,7 +109,8 @@ registerStepFunction("step//workflows/user.js//createUser", createUser); // [!co
 
 **Input:**
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 export async function createUser(email: string) {
   "use step";
   return { id: crypto.randomUUID(), email };
@@ -121,7 +125,8 @@ export async function handleUserSignup(email: string) {
 
 **Output:**
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 export async function createUser(email: string) {
   return globalThis[Symbol.for("WORKFLOW_USE_STEP")]("step//workflows/user.js//createUser")(email); // [!code highlight]
 }
@@ -140,7 +145,7 @@ handleUserSignup.workflowId = "workflow//workflows/user.js//handleUserSignup"; /
 - The workflow function gets a `workflowId` property for runtime identification
 - The `"use workflow"` directive is removed
 
-**Why this transformation?** When a workflow executes, it needs to replay past steps from the event log rather than re-executing them. The `WORKFLOW_USE_STEP` symbol is a special runtime hook that:
+**Why this transformation?** When a workflow executes, it needs to replay past steps from the [event log](/docs/how-it-works/event-sourcing) rather than re-executing them. The `WORKFLOW_USE_STEP` symbol is a special runtime hook that:
 
 1. Checks if the step has already been executed (in the event log)
 2. If yes: Returns the cached result
@@ -155,7 +160,8 @@ handleUserSignup.workflowId = "workflow//workflows/user.js//handleUserSignup"; /
 
 **Input:**
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 export async function handleUserSignup(email: string) {
   "use workflow";
   const user = await createUser(email);
@@ -165,7 +171,8 @@ export async function handleUserSignup(email: string) {
 
 **Output:**
 
-```ts
+{/* @skip-typecheck: incomplete code sample */}
+```typescript
 export async function handleUserSignup(email: string) {
   throw new Error("You attempted to execute ..."); // [!code highlight]
 }
@@ -283,7 +290,7 @@ Because workflow functions are deterministic and have no side effects, they can 
 
 - Can make API calls, database queries, etc.
 - Have full access to Node.js runtime and APIs
-- Results are cached in the event log after first execution
+- Results are cached in the [event log](/docs/how-it-works/event-sourcing) after first execution
 
 Learn more about [Workflows and Steps](/docs/foundations/workflows-and-steps).
 

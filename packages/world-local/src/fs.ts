@@ -9,6 +9,51 @@ const ulid = monotonicFactory(() => Math.random());
 
 const Ulid = z.string().ulid();
 
+const isWindows = process.platform === 'win32';
+
+/**
+ * Execute a filesystem operation with retry logic on Windows.
+ * On Windows, file operations can fail with EPERM/EBUSY/EACCES when files
+ * are briefly locked by another process or antivirus. This wrapper adds
+ * exponential backoff retry logic. On non-Windows platforms, executes directly.
+ */
+async function withWindowsRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 5
+): Promise<T> {
+  if (!isWindows) return fn();
+
+  const retryableErrors = ['EPERM', 'EBUSY', 'EACCES'];
+  const baseDelayMs = 10;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRetryable =
+        attempt < maxRetries && retryableErrors.includes(error.code);
+      if (!isRetryable) throw error;
+      // Exponential backoff with jitter
+      const delay =
+        baseDelayMs * Math.pow(2, attempt) + Math.random() * baseDelayMs;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  // TypeScript: unreachable, but satisfies return type
+  throw new Error('Retry loop exited unexpectedly');
+}
+
+// In-memory cache of created files to avoid expensive fs.access() calls
+// This is safe because we only write once per file path (no overwrites without explicit flag)
+const createdFilesCache = new Set<string>();
+
+/**
+ * Clear the created files cache. Useful for testing or when files are deleted externally.
+ */
+export function clearCreatedFilesCache(): void {
+  createdFilesCache.clear();
+}
+
 export function ulidToDate(maybeUlid: string): Date | null {
   const ulid = Ulid.safeParse(maybeUlid);
   if (!ulid.success) {
@@ -53,8 +98,20 @@ export async function write(
   opts?: WriteOptions
 ): Promise<void> {
   if (!opts?.overwrite) {
+    // Fast path: check in-memory cache first to avoid expensive fs.access() calls
+    // This provides significant performance improvement when creating many files
+    if (createdFilesCache.has(filePath)) {
+      throw new WorkflowAPIError(
+        `File ${filePath} already exists and 'overwrite' is false`,
+        { status: 409 }
+      );
+    }
+
+    // Slow path: check filesystem for files created before this process started
     try {
       await fs.access(filePath);
+      // File exists on disk, add to cache for future checks
+      createdFilesCache.add(filePath);
       throw new WorkflowAPIError(
         `File ${filePath} already exists and 'overwrite' is false`,
         { status: 409 }
@@ -73,11 +130,13 @@ export async function write(
     await ensureDir(path.dirname(filePath));
     await fs.writeFile(tempPath, data);
     tempFileCreated = true;
-    await fs.rename(tempPath, filePath);
+    await withWindowsRetry(() => fs.rename(tempPath, filePath));
+    // Track this file in cache so future writes know it exists
+    createdFilesCache.add(filePath);
   } catch (error) {
     // Only try to clean up temp file if it was actually created
     if (tempFileCreated) {
-      await fs.unlink(tempPath).catch(() => {});
+      await withWindowsRetry(() => fs.unlink(tempPath), 3).catch(() => {});
     }
     throw error;
   }
@@ -202,13 +261,9 @@ export async function paginatedFileSystemQuery<T extends { createdAt: Date }>(
             : fileTime > cursorTime;
         }
       }
-      // Skip files where we can't extract timestamp - no optimization benefit
-      return false;
-    });
-  } else {
-    // Even without cursor, skip files where getCreatedAt returns null for consistency
-    candidateFileIds = relevantFileIds.filter((fileId) => {
-      return getCreatedAt(`${fileId}.json`) !== null;
+      // Can't extract timestamp from filename (e.g., steps use sequential IDs).
+      // Include the file and defer to JSON-based filtering below.
+      return true;
     });
   }
 
@@ -217,7 +272,22 @@ export async function paginatedFileSystemQuery<T extends { createdAt: Date }>(
 
   for (const fileId of candidateFileIds) {
     const filePath = path.join(directory, `${fileId}.json`);
-    const item = await readJSON(filePath, schema);
+    let item: T | null = null;
+    try {
+      item = await readJSON(filePath, schema);
+    } catch (error: unknown) {
+      // We don't expect zod errors to happen, but if the JSON does get malformed,
+      // we skip the item. Preferably, we'd have a way to mark items as malformed,
+      // so that the UI can display them as such, with richer messaging. In the meantime,
+      // we just log a warning and skip the item.
+      if (error instanceof z.ZodError) {
+        console.warn(
+          `Skipping item ${fileId} due to malformed JSON: ${error.message}`
+        );
+        continue;
+      }
+      throw error;
+    }
 
     if (item) {
       // Apply custom filter early if provided

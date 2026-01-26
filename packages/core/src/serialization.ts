@@ -1,14 +1,58 @@
 import { WorkflowRuntimeError } from '@workflow/errors';
-import * as devalue from 'devalue';
+import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
+import { DevalueError, parse, stringify, unflatten } from 'devalue';
+import { monotonicFactory } from 'ulid';
+import { getSerializationClass } from './class-serialization.js';
+import {
+  createFlushableState,
+  flushablePipe,
+  pollReadableLock,
+  pollWritableLock,
+} from './flushable-stream.js';
 import { getStepFunction } from './private.js';
 import { getWorld } from './runtime/world.js';
 import { contextStorage } from './step/context-storage.js';
 import {
   BODY_INIT_SYMBOL,
+  STABLE_ULID,
   STREAM_NAME_SYMBOL,
   STREAM_TYPE_SYMBOL,
   WEBHOOK_RESPONSE_WRITABLE,
 } from './symbols.js';
+
+/**
+ * Default ULID generator for contexts where VM's seeded `stableUlid` isn't available.
+ * Used as a fallback when serializing streams outside the workflow VM context
+ * (e.g., when starting a workflow or handling step return values).
+ */
+const defaultUlid = monotonicFactory();
+
+/**
+ * Format a serialization error with context about what failed.
+ * Extracts path, value, and reason from devalue's DevalueError when available.
+ * Logs the problematic value to the console for better debugging.
+ */
+function formatSerializationError(context: string, error: unknown): string {
+  // Use "returning" for return values, "passing" for arguments/inputs
+  const verb = context.includes('return value') ? 'returning' : 'passing';
+
+  // Build the error message with path info if available from DevalueError
+  let message = `Failed to serialize ${context}`;
+  if (error instanceof DevalueError && error.path) {
+    message += ` at path "${error.path}"`;
+  }
+  message += `. Ensure you're ${verb} serializable types (plain objects, arrays, primitives, Date, RegExp, Map, Set).`;
+
+  // Log the problematic value to console for debugging
+  if (error instanceof DevalueError && error.value !== undefined) {
+    console.error(
+      `[Workflows] Serialization failed for ${context}. Problematic value:`
+    );
+    console.error(error.value);
+  }
+
+  return message;
+}
 
 /**
  * Detect if a readable stream is a byte stream.
@@ -31,12 +75,12 @@ export function getSerializeStream(
   const stream = new TransformStream<any, Uint8Array>({
     transform(chunk, controller) {
       try {
-        const serialized = devalue.stringify(chunk, reducers);
+        const serialized = stringify(chunk, reducers);
         controller.enqueue(encoder.encode(`${serialized}\n`));
       } catch (error) {
         controller.error(
           new WorkflowRuntimeError(
-            "Failed to serialize stream chunk. Ensure you're passing serializable types (plain objects, arrays, primitives, Date, RegExp, Map, Set).",
+            formatSerializationError('stream chunk', error),
             { slug: 'serialization-failed', cause: error }
           )
         );
@@ -63,7 +107,7 @@ export function getDeserializeStream(
         const line = buffer.slice(0, newlineIndex);
         buffer = buffer.slice(newlineIndex + 1);
         if (line.length > 0) {
-          const obj = devalue.parse(line, revivers);
+          const obj = parse(line, revivers);
           controller.enqueue(obj);
         }
       }
@@ -71,7 +115,7 @@ export function getDeserializeStream(
     flush(controller) {
       // Process any remaining data in the buffer at the end of the stream
       if (buffer && buffer.length > 0) {
-        const obj = devalue.parse(buffer, revivers);
+        const obj = parse(buffer, revivers);
         controller.enqueue(obj);
       }
     },
@@ -180,6 +224,17 @@ export interface SerializableSpecial {
     headers: Headers;
     body: Response['body'];
     redirected: boolean;
+  };
+  Class: {
+    classId: string;
+  };
+  /**
+   * Custom serialized class instance.
+   * The class must have a `classId` property and be registered for deserialization.
+   */
+  Instance: {
+    classId: string; // Unique identifier for the class (used for lookup during deserialization)
+    data: unknown; // The serialized instance data
   };
   Set: any[];
   StepFunction: {
@@ -294,6 +349,38 @@ function getCommonReducers(global: Record<string, any> = globalThis) {
         redirected: value.redirected,
       };
     },
+    Class: (value) => {
+      // Check if this is a class constructor with a classId property
+      // (set by the SWC plugin for classes with static step/workflow methods)
+      if (typeof value !== 'function') return false;
+      const classId = (value as any).classId;
+      if (typeof classId !== 'string') return false;
+      return { classId };
+    },
+    Instance: (value) => {
+      // Check if this is an instance of a class with custom serialization
+      if (value === null || typeof value !== 'object') return false;
+      const ctor = value.constructor;
+      if (!ctor || typeof ctor !== 'function') return false;
+
+      // Check if the class has a static WORKFLOW_SERIALIZE method
+      const serialize = ctor[WORKFLOW_SERIALIZE];
+      if (typeof serialize !== 'function') {
+        return false;
+      }
+
+      // Get the classId from the static class property (set by SWC plugin)
+      const classId = ctor.classId;
+      if (typeof classId !== 'string') {
+        throw new Error(
+          `Class "${ctor.name}" with ${String(WORKFLOW_SERIALIZE)} must have a static "classId" property.`
+        );
+      }
+
+      // Serialize the instance using the custom serializer
+      const data = serialize(value);
+      return { classId, data };
+    },
     Set: (value) => value instanceof global.Set && Array.from(value),
     StepFunction: (value) => {
       if (typeof value !== 'function') return false;
@@ -355,7 +442,8 @@ export function getExternalReducers(
         throw new Error('ReadableStream is locked');
       }
 
-      const name = global.crypto.randomUUID();
+      const streamId = ((global as any)[STABLE_ULID] || defaultUlid)();
+      const name = `strm_${streamId}`;
       const type = getStreamType(value);
 
       const writable = new WorkflowServerWritableStream(name, runId);
@@ -379,7 +467,8 @@ export function getExternalReducers(
     WritableStream: (value) => {
       if (!(value instanceof global.WritableStream)) return false;
 
-      const name = global.crypto.randomUUID();
+      const streamId = ((global as any)[STABLE_ULID] || defaultUlid)();
+      const name = `strm_${streamId}`;
 
       const readable = new WorkflowServerReadableStream(name);
       ops.push(readable.pipeTo(value));
@@ -473,7 +562,8 @@ function getStepReducers(
           );
         }
 
-        name = global.crypto.randomUUID();
+        const streamId = ((global as any)[STABLE_ULID] || defaultUlid)();
+        name = `strm_${streamId}`;
         type = getStreamType(value);
 
         const writable = new WorkflowServerWritableStream(name, runId);
@@ -506,7 +596,8 @@ function getStepReducers(
           );
         }
 
-        name = global.crypto.randomUUID();
+        const streamId = ((global as any)[STABLE_ULID] || defaultUlid)();
+        name = `strm_${streamId}`;
         ops.push(
           new WorkflowServerReadableStream(name)
             .pipeThrough(
@@ -572,6 +663,42 @@ export function getCommonRevivers(global: Record<string, any> = globalThis) {
     },
     Map: (value) => new global.Map(value),
     RegExp: (value) => new global.RegExp(value.source, value.flags),
+    Class: (value) => {
+      const classId = value.classId;
+      const cls = getSerializationClass(classId);
+      if (!cls) {
+        throw new Error(
+          `Class "${classId}" not found. Make sure the class is registered with registerSerializationClass.`
+        );
+      }
+      return cls;
+    },
+    Instance: (value) => {
+      const classId = value.classId;
+      const data = value.data;
+
+      // Look up the class by classId from the registry
+      // Pass the global object to support VM contexts where classes are registered
+      // on the VM's global rather than the host's globalThis
+      const cls = getSerializationClass(classId, global);
+
+      if (!cls) {
+        throw new Error(
+          `Class "${classId}" not found. Make sure the class is registered with registerSerializationClass.`
+        );
+      }
+
+      // Get the deserializer from the class
+      const deserialize = (cls as any)[WORKFLOW_DESERIALIZE];
+      if (typeof deserialize !== 'function') {
+        throw new Error(
+          `Class "${classId}" does not have a static ${String(WORKFLOW_DESERIALIZE)} method.`
+        );
+      }
+
+      // Deserialize the instance using the custom deserializer
+      return deserialize(data);
+    },
     Set: (value) => new global.Set(value),
     StepFunction: (value) => {
       const stepId = value.stepId;
@@ -696,12 +823,38 @@ export function getExternalRevivers(
         value.startIndex
       );
       if (value.type === 'bytes') {
-        return readable;
+        // For byte streams, use flushable pipe with lock polling
+        const state = createFlushableState();
+        ops.push(state.promise);
+
+        // Create an identity transform to give the user a readable
+        const { readable: userReadable, writable } =
+          new global.TransformStream();
+
+        // Start the flushable pipe in the background
+        flushablePipe(readable, writable, state).catch(() => {
+          // Errors are handled via state.reject
+        });
+
+        // Start polling to detect when user releases lock
+        pollReadableLock(userReadable, state);
+
+        return userReadable;
       } else {
         const transform = getDeserializeStream(
           getExternalRevivers(global, ops, runId)
         );
-        ops.push(readable.pipeTo(transform.writable));
+        const state = createFlushableState();
+        ops.push(state.promise);
+
+        // Start the flushable pipe in the background
+        flushablePipe(readable, transform.writable, state).catch(() => {
+          // Errors are handled via state.reject
+        });
+
+        // Start polling to detect when user releases lock
+        pollReadableLock(transform.readable, state);
+
         return transform.readable;
       }
     },
@@ -709,11 +862,23 @@ export function getExternalRevivers(
       const serialize = getSerializeStream(
         getExternalReducers(global, ops, runId)
       );
-      ops.push(
-        serialize.readable.pipeTo(
-          new WorkflowServerWritableStream(value.name, runId)
-        )
+      const serverWritable = new WorkflowServerWritableStream(
+        value.name,
+        runId
       );
+
+      // Create flushable state for this stream
+      const state = createFlushableState();
+      ops.push(state.promise);
+
+      // Start the flushable pipe in the background
+      flushablePipe(serialize.readable, serverWritable, state).catch(() => {
+        // Errors are handled via state.reject
+      });
+
+      // Start polling to detect when user releases lock
+      pollWritableLock(serialize.writable, state);
+
       return serialize.writable;
     },
   };
@@ -840,12 +1005,38 @@ function getStepRevivers(
 
       const readable = new WorkflowServerReadableStream(value.name);
       if (value.type === 'bytes') {
-        return readable;
+        // For byte streams, use flushable pipe with lock polling
+        const state = createFlushableState();
+        ops.push(state.promise);
+
+        // Create an identity transform to give the user a readable
+        const { readable: userReadable, writable } =
+          new global.TransformStream();
+
+        // Start the flushable pipe in the background
+        flushablePipe(readable, writable, state).catch(() => {
+          // Errors are handled via state.reject
+        });
+
+        // Start polling to detect when user releases lock
+        pollReadableLock(userReadable, state);
+
+        return userReadable;
       } else {
         const transform = getDeserializeStream(
           getStepRevivers(global, ops, runId)
         );
-        ops.push(readable.pipeTo(transform.writable));
+        const state = createFlushableState();
+        ops.push(state.promise);
+
+        // Start the flushable pipe in the background
+        flushablePipe(readable, transform.writable, state).catch(() => {
+          // Errors are handled via state.reject
+        });
+
+        // Start polling to detect when user releases lock
+        pollReadableLock(transform.readable, state);
+
         return transform.readable;
       }
     },
@@ -857,11 +1048,23 @@ function getStepRevivers(
       }
 
       const serialize = getSerializeStream(getStepReducers(global, ops, runId));
-      ops.push(
-        serialize.readable.pipeTo(
-          new WorkflowServerWritableStream(value.name, runId)
-        )
+      const serverWritable = new WorkflowServerWritableStream(
+        value.name,
+        runId
       );
+
+      // Create flushable state for this stream
+      const state = createFlushableState();
+      ops.push(state.promise);
+
+      // Start the flushable pipe in the background
+      flushablePipe(serialize.readable, serverWritable, state).catch(() => {
+        // Errors are handled via state.reject
+      });
+
+      // Start polling to detect when user releases lock
+      pollWritableLock(serialize.writable, state);
+
       return serialize.writable;
     },
   };
@@ -884,14 +1087,11 @@ export function dehydrateWorkflowArguments(
   global: Record<string, any> = globalThis
 ) {
   try {
-    const str = devalue.stringify(
-      value,
-      getExternalReducers(global, ops, runId)
-    );
+    const str = stringify(value, getExternalReducers(global, ops, runId));
     return revive(str);
   } catch (error) {
     throw new WorkflowRuntimeError(
-      `Failed to serialize workflow arguments. Ensure you're passing serializable types (plain objects, arrays, primitives, Date, RegExp, Map, Set).`,
+      formatSerializationError('workflow arguments', error),
       { slug: 'serialization-failed', cause: error }
     );
   }
@@ -907,11 +1107,11 @@ export function dehydrateWorkflowArguments(
  * @returns The hydrated value
  */
 export function hydrateWorkflowArguments(
-  value: Parameters<typeof devalue.unflatten>[0],
+  value: Parameters<typeof unflatten>[0],
   global: Record<string, any> = globalThis,
   extraRevivers: Record<string, (value: any) => any> = {}
 ) {
-  const obj = devalue.unflatten(value, {
+  const obj = unflatten(value, {
     ...getWorkflowRevivers(global),
     ...extraRevivers,
   });
@@ -931,11 +1131,11 @@ export function dehydrateWorkflowReturnValue(
   global: Record<string, any> = globalThis
 ) {
   try {
-    const str = devalue.stringify(value, getWorkflowReducers(global));
+    const str = stringify(value, getWorkflowReducers(global));
     return revive(str);
   } catch (error) {
     throw new WorkflowRuntimeError(
-      `Failed to serialize workflow return value. Ensure you're returning serializable types (plain objects, arrays, primitives, Date, RegExp, Map, Set).`,
+      formatSerializationError('workflow return value', error),
       { slug: 'serialization-failed', cause: error }
     );
   }
@@ -954,13 +1154,13 @@ export function dehydrateWorkflowReturnValue(
  * @returns The hydrated return value, ready to be consumed by the client
  */
 export function hydrateWorkflowReturnValue(
-  value: Parameters<typeof devalue.unflatten>[0],
+  value: Parameters<typeof unflatten>[0],
   ops: Promise<void>[],
   runId: string | Promise<string>,
   global: Record<string, any> = globalThis,
   extraRevivers: Record<string, (value: any) => any> = {}
 ) {
-  const obj = devalue.unflatten(value, {
+  const obj = unflatten(value, {
     ...getExternalRevivers(global, ops, runId),
     ...extraRevivers,
   });
@@ -981,11 +1181,11 @@ export function dehydrateStepArguments(
   global: Record<string, any>
 ) {
   try {
-    const str = devalue.stringify(value, getWorkflowReducers(global));
+    const str = stringify(value, getWorkflowReducers(global));
     return revive(str);
   } catch (error) {
     throw new WorkflowRuntimeError(
-      `Failed to serialize step arguments. Ensure you're passing serializable types (plain objects, arrays, primitives, Date, RegExp, Map, Set).`,
+      formatSerializationError('step arguments', error),
       { slug: 'serialization-failed', cause: error }
     );
   }
@@ -1003,13 +1203,13 @@ export function dehydrateStepArguments(
  * @returns The hydrated value, ready to be consumed by the step user-code function
  */
 export function hydrateStepArguments(
-  value: Parameters<typeof devalue.unflatten>[0],
+  value: Parameters<typeof unflatten>[0],
   ops: Promise<any>[],
   runId: string | Promise<string>,
   global: Record<string, any> = globalThis,
   extraRevivers: Record<string, (value: any) => any> = {}
 ) {
-  const obj = devalue.unflatten(value, {
+  const obj = unflatten(value, {
     ...getStepRevivers(global, ops, runId),
     ...extraRevivers,
   });
@@ -1034,11 +1234,11 @@ export function dehydrateStepReturnValue(
   global: Record<string, any> = globalThis
 ) {
   try {
-    const str = devalue.stringify(value, getStepReducers(global, ops, runId));
+    const str = stringify(value, getStepReducers(global, ops, runId));
     return revive(str);
   } catch (error) {
     throw new WorkflowRuntimeError(
-      `Failed to serialize step return value. Ensure you're returning serializable types (plain objects, arrays, primitives, Date, RegExp, Map, Set).`,
+      formatSerializationError('step return value', error),
       { slug: 'serialization-failed', cause: error }
     );
   }
@@ -1055,11 +1255,11 @@ export function dehydrateStepReturnValue(
  * @returns The hydrated return value of a step, ready to be consumed by the workflow handler
  */
 export function hydrateStepReturnValue(
-  value: Parameters<typeof devalue.unflatten>[0],
+  value: Parameters<typeof unflatten>[0],
   global: Record<string, any> = globalThis,
   extraRevivers: Record<string, (value: any) => any> = {}
 ) {
-  const obj = devalue.unflatten(value, {
+  const obj = unflatten(value, {
     ...getWorkflowRevivers(global),
     ...extraRevivers,
   });

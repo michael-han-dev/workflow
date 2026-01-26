@@ -7,6 +7,7 @@ import { Agent } from 'undici';
 import z from 'zod';
 import type { Config } from './config.js';
 import { resolveBaseUrl } from './config.js';
+import { getPackageInfo } from './init.js';
 
 // For local queue, there is no technical limit on the message visibility lifespan,
 // but the environment variable can be used for testing purposes to set a max visibility limit.
@@ -14,16 +15,28 @@ const LOCAL_QUEUE_MAX_VISIBILITY =
   parseInt(process.env.WORKFLOW_LOCAL_QUEUE_MAX_VISIBILITY ?? '0', 10) ||
   Infinity;
 
+// Maximum safe delay for setTimeout in Node.js (2^31 - 1 milliseconds ≈ 24.85 days)
+// Larger values cause "TimeoutOverflowWarning: X does not fit into a 32-bit signed integer"
+// When the clamped timeout fires, the handler will recalculate remaining time from
+// persistent state and return another timeoutSeconds if needed.
+const MAX_SAFE_TIMEOUT_MS = 2147483647;
+
 // The local workers share the same Node.js process and event loop,
 // so we need to limit concurrency to avoid overwhelming the system.
-const DEFAULT_CONCURRENCY_LIMIT = 20;
+const DEFAULT_CONCURRENCY_LIMIT = 100;
 const WORKFLOW_LOCAL_QUEUE_CONCURRENCY =
   parseInt(process.env.WORKFLOW_LOCAL_QUEUE_CONCURRENCY ?? '0', 10) ||
   DEFAULT_CONCURRENCY_LIMIT;
 
-// Create a custom agent with unlimited headers timeout for long-running steps
+// Create a custom agent optimized for high-concurrency local workflows:
+// - headersTimeout: 0 allows long-running steps
+// - connections: 100 allows many parallel connections to the same host
+// - pipelining: 1 (default) for HTTP/1.1 compatibility
+// - keepAliveTimeout: 30s keeps connections warm for rapid step execution
 const httpAgent = new Agent({
   headersTimeout: 0,
+  connections: 100,
+  keepAliveTimeout: 30_000,
 });
 
 export function createQueue(config: Partial<Config>): Queue {
@@ -85,7 +98,6 @@ export function createQueue(config: Partial<Config>): Queue {
             {
               method: 'POST',
               duplex: 'half',
-              // @ts-expect-error undici type differences
               dispatcher: httpAgent,
               headers: {
                 'content-type': 'application/json',
@@ -106,7 +118,14 @@ export function createQueue(config: Partial<Config>): Queue {
           if (response.status === 503) {
             try {
               const timeoutSeconds = Number(JSON.parse(text).timeoutSeconds);
-              await setTimeout(timeoutSeconds * 1000);
+              // Clamp to MAX_SAFE_TIMEOUT_MS to avoid Node.js setTimeout overflow warning.
+              // When this fires early, the handler recalculates remaining time from
+              // persistent state and returns another timeoutSeconds if needed.
+              const timeoutMs = Math.min(
+                timeoutSeconds * 1000,
+                MAX_SAFE_TIMEOUT_MS
+              );
+              await setTimeout(timeoutMs);
               defaultRetriesLeft++;
               continue;
             } catch {}
@@ -199,7 +218,8 @@ export function createQueue(config: Partial<Config>): Queue {
   };
 
   const getDeploymentId: Queue['getDeploymentId'] = async () => {
-    return 'dpl_local';
+    const packageInfo = await getPackageInfo();
+    return `dpl_local@${packageInfo.version}`;
   };
 
   return { queue, createQueueHandler, getDeploymentId };

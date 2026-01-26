@@ -1,25 +1,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
-  BaseBuilder,
-  VercelBuildOutputAPIBuilder,
-  createBaseBuilderConfig,
   type AstroConfig,
+  BaseBuilder,
+  createBaseBuilderConfig,
+  NORMALIZE_REQUEST_CODE,
+  VercelBuildOutputAPIBuilder,
 } from '@workflow/builders';
-
-// NOTE: This is the same as SvelteKit request converter, should merge
-const NORMALIZE_REQUEST_CONVERTER = `
-async function normalizeRequestConverter(request) {
-  const options = {
-    method: request.method,
-    headers: new Headers(request.headers)
-  };
-  if (!['GET', 'HEAD', 'OPTIONS', 'TRACE', 'CONNECT'].includes(request.method)) {
-    options.body = await request.arrayBuffer();
-  }
-  return new Request(request.url, options);
-}
-`;
 
 const WORKFLOW_ROUTES = [
   {
@@ -63,13 +50,12 @@ export class LocalBuilder extends BaseBuilder {
 
     // Get workflow and step files to bundle
     const inputFiles = await this.getInputFiles();
-    const tsConfig = await this.getTsConfigOptions();
+    const tsconfigPath = await this.findTsConfigPath();
 
     const options = {
       inputFiles,
       workflowGeneratedDir,
-      tsBaseUrl: tsConfig.baseUrl,
-      tsPaths: tsConfig.paths,
+      tsconfigPath,
     };
 
     // Generate the three Astro route handlers
@@ -81,13 +67,11 @@ export class LocalBuilder extends BaseBuilder {
   private async buildStepsRoute({
     inputFiles,
     workflowGeneratedDir,
-    tsPaths,
-    tsBaseUrl,
+    tsconfigPath,
   }: {
     inputFiles: string[];
     workflowGeneratedDir: string;
-    tsBaseUrl?: string;
-    tsPaths?: Record<string, string[]>;
+    tsconfigPath?: string;
   }) {
     // Create steps route: .well-known/workflow/v1/step.js
     const stepsRouteFile = join(workflowGeneratedDir, 'step.js');
@@ -96,8 +80,7 @@ export class LocalBuilder extends BaseBuilder {
       inputFiles,
       outfile: stepsRouteFile,
       externalizeNonSteps: true,
-      tsBaseUrl,
-      tsPaths,
+      tsconfigPath,
     });
 
     let stepsRouteContent = await readFile(stepsRouteFile, 'utf-8');
@@ -105,9 +88,9 @@ export class LocalBuilder extends BaseBuilder {
     // Normalize request, needed for preserving request through astro
     stepsRouteContent = stepsRouteContent.replace(
       /export\s*\{\s*stepEntrypoint\s+as\s+POST\s*\}\s*;?$/m,
-      `${NORMALIZE_REQUEST_CONVERTER}
+      `${NORMALIZE_REQUEST_CODE}
 export const POST = async ({request}) => {
-  const normalRequest = await normalizeRequestConverter(request);
+  const normalRequest = await normalizeRequest(request);
   return stepEntrypoint(normalRequest);
 }
 
@@ -119,13 +102,11 @@ export const prerender = false;`
   private async buildWorkflowsRoute({
     inputFiles,
     workflowGeneratedDir,
-    tsPaths,
-    tsBaseUrl,
+    tsconfigPath,
   }: {
     inputFiles: string[];
     workflowGeneratedDir: string;
-    tsBaseUrl?: string;
-    tsPaths?: Record<string, string[]>;
+    tsconfigPath?: string;
   }) {
     // Create workflows route: .well-known/workflow/v1/flow.js
     const workflowsRouteFile = join(workflowGeneratedDir, 'flow.js');
@@ -134,8 +115,7 @@ export const prerender = false;`
       outfile: workflowsRouteFile,
       bundleFinalOutput: false,
       inputFiles,
-      tsBaseUrl,
-      tsPaths,
+      tsconfigPath,
     });
 
     let workflowsRouteContent = await readFile(workflowsRouteFile, 'utf-8');
@@ -143,9 +123,9 @@ export const prerender = false;`
     // Normalize request, needed for preserving request through astro
     workflowsRouteContent = workflowsRouteContent.replace(
       /export const POST = workflowEntrypoint\(workflowCode\);?$/m,
-      `${NORMALIZE_REQUEST_CONVERTER}
+      `${NORMALIZE_REQUEST_CODE}
 export const POST = async ({request}) => {
-  const normalRequest = await normalizeRequestConverter(request);
+  const normalRequest = await normalizeRequest(request);
   return workflowEntrypoint(workflowCode)(normalRequest);
 }
 
@@ -185,9 +165,9 @@ export const prerender = false;`
     // Normalize request, needed for preserving request through astro
     webhookRouteContent = webhookRouteContent.replace(
       /export const GET = handler;\nexport const POST = handler;\nexport const PUT = handler;\nexport const PATCH = handler;\nexport const DELETE = handler;\nexport const HEAD = handler;\nexport const OPTIONS = handler;/,
-      `${NORMALIZE_REQUEST_CONVERTER}
+      `${NORMALIZE_REQUEST_CODE}
 const createHandler = (method) => async ({ request, params, platform }) => {
-  const normalRequest = await normalizeRequestConverter(request);
+  const normalRequest = await normalizeRequest(request);
   const response = await handler(normalRequest, params.token);
   return response;
 };

@@ -1,8 +1,9 @@
 import { withResolvers } from '@workflow/utils';
-import { bench, describe } from 'vitest';
-import { dehydrateWorkflowArguments } from '../src/serialization';
 import fs from 'fs';
 import path from 'path';
+import { bench, describe } from 'vitest';
+import { dehydrateWorkflowArguments } from '../src/serialization';
+import { getProtectionBypassHeaders } from './utils';
 
 const deploymentUrl = process.env.DEPLOYMENT_URL;
 if (!deploymentUrl) {
@@ -13,18 +14,20 @@ if (!deploymentUrl) {
 const workflowTimings: Record<
   string,
   {
+    runId: string;
     createdAt: string;
     startedAt?: string;
     completedAt?: string;
     executionTimeMs?: number;
     firstByteTimeMs?: number;
+    slurpTimeMs?: number;
   }[]
 > = {};
 
 // Buffered timing data keyed by task name, flushed in teardown
 const bufferedTimings: Map<
   string,
-  { run: any; extra?: { firstByteTimeMs?: number } }[]
+  { run: any; extra?: { firstByteTimeMs?: number; slurpTimeMs?: number } }[]
 > = new Map();
 
 async function triggerWorkflow(
@@ -49,6 +52,7 @@ async function triggerWorkflow(
 
   const res = await fetch(url, {
     method: 'POST',
+    headers: getProtectionBypassHeaders(),
     body: JSON.stringify(dehydratedArgs),
   });
   if (!res.ok) {
@@ -70,12 +74,15 @@ async function triggerWorkflow(
 async function getWorkflowReturnValue(
   runId: string
 ): Promise<{ run: any; value: any }> {
+  const MAX_UNEXPECTED_CONTENT_RETRIES = 3;
+  let unexpectedContentRetries = 0;
+
   // We need to poll the GET endpoint until the workflow run is completed.
   while (true) {
     const url = new URL('/api/trigger', deploymentUrl);
     url.searchParams.set('runId', runId);
 
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: getProtectionBypassHeaders() });
 
     if (res.status === 202) {
       // Workflow run is still running, so we need to wait and poll again
@@ -101,7 +108,24 @@ async function getWorkflowReturnValue(
       return { run, value: res.body };
     }
 
-    throw new Error(`Unexpected content type: ${contentType}`);
+    // Unexpected content type - log details and retry
+    unexpectedContentRetries++;
+    const responseText = await res.text().catch(() => '<failed to read body>');
+    console.warn(
+      `[bench] Unexpected content type for runId=${runId} (attempt ${unexpectedContentRetries}/${MAX_UNEXPECTED_CONTENT_RETRIES}):\n` +
+        `  Status: ${res.status}\n` +
+        `  Content-Type: ${contentType}\n` +
+        `  Response: ${responseText.slice(0, 500)}${responseText.length > 500 ? '...' : ''}`
+    );
+
+    if (unexpectedContentRetries >= MAX_UNEXPECTED_CONTENT_RETRIES) {
+      throw new Error(
+        `Unexpected content type after ${MAX_UNEXPECTED_CONTENT_RETRIES} retries: ${contentType} (status=${res.status})`
+      );
+    }
+
+    // Wait before retrying
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 }
 
@@ -128,6 +152,15 @@ function getTimingOutputPath() {
 function writeTimingFile() {
   const outputPath = getTimingOutputPath();
 
+  // Capture Vercel environment metadata if available
+  const vercelMetadata = process.env.WORKFLOW_VERCEL_ENV
+    ? {
+        projectSlug: process.env.WORKFLOW_VERCEL_PROJECT_SLUG,
+        environment: process.env.WORKFLOW_VERCEL_ENV,
+        teamSlug: 'vercel-labs',
+      }
+    : null;
+
   // Calculate average, min, and max execution times
   const summary: Record<
     string,
@@ -139,6 +172,9 @@ function writeTimingFile() {
       avgFirstByteTimeMs?: number;
       minFirstByteTimeMs?: number;
       maxFirstByteTimeMs?: number;
+      avgSlurpTimeMs?: number;
+      minSlurpTimeMs?: number;
+      maxSlurpTimeMs?: number;
     }
   > = {};
   for (const [benchName, timings] of Object.entries(workflowTimings)) {
@@ -167,12 +203,26 @@ function writeTimingFile() {
         summary[benchName].minFirstByteTimeMs = Math.min(...firstByteTimes);
         summary[benchName].maxFirstByteTimeMs = Math.max(...firstByteTimes);
       }
+
+      // Add slurp time stats if available (time from first byte to stream completion)
+      const slurpTimings = timings.filter((t) => t.slurpTimeMs !== undefined);
+      if (slurpTimings.length > 0) {
+        const slurpTimes = slurpTimings.map((t) => t.slurpTimeMs!);
+        summary[benchName].avgSlurpTimeMs =
+          slurpTimes.reduce((sum, t) => sum + t, 0) / slurpTimes.length;
+        summary[benchName].minSlurpTimeMs = Math.min(...slurpTimes);
+        summary[benchName].maxSlurpTimeMs = Math.max(...slurpTimes);
+      }
     }
   }
 
   fs.writeFileSync(
     outputPath,
-    JSON.stringify({ timings: workflowTimings, summary }, null, 2)
+    JSON.stringify(
+      { timings: workflowTimings, summary, vercel: vercelMetadata },
+      null,
+      2
+    )
   );
 }
 
@@ -180,7 +230,7 @@ function writeTimingFile() {
 function stageTiming(
   benchName: string,
   run: any,
-  extra?: { firstByteTimeMs?: number }
+  extra?: { firstByteTimeMs?: number; slurpTimeMs?: number }
 ) {
   if (!bufferedTimings.has(benchName)) {
     bufferedTimings.set(benchName, []);
@@ -200,6 +250,7 @@ const teardown = (task: { name: string }, mode: 'warmup' | 'run') => {
       }
 
       const timing: any = {
+        runId: run.runId,
         createdAt: run.createdAt,
         startedAt: run.startedAt,
         completedAt: run.completedAt,
@@ -215,6 +266,9 @@ const teardown = (task: { name: string }, mode: 'warmup' | 'run') => {
       // Add extra metrics if provided
       if (extra?.firstByteTimeMs !== undefined) {
         timing.firstByteTimeMs = extra.firstByteTimeMs;
+      }
+      if (extra?.slurpTimeMs !== undefined) {
+        timing.slurpTimeMs = extra.slurpTimeMs;
       }
 
       workflowTimings[task.name].push(timing);
@@ -260,37 +314,71 @@ describe('Workflow Performance Benchmarks', () => {
   );
 
   bench(
-    'workflow with 10 parallel steps',
-    async () => {
-      const { runId } = await triggerWorkflow('tenParallelStepsWorkflow', []);
-      const { run } = await getWorkflowReturnValue(runId);
-      stageTiming('workflow with 10 parallel steps', run);
-    },
-    { time: 5000, iterations: 5, warmupIterations: 1, teardown }
-  );
-
-  bench(
     'workflow with stream',
     async () => {
       const { runId } = await triggerWorkflow('streamWorkflow', []);
       const { run, value } = await getWorkflowReturnValue(runId);
-      // Consume the entire stream and track time-to-first-byte from workflow startedAt
+      // Consume the entire stream and track:
+      // - firstByteTimeMs: time from workflow start to first byte
+      // - slurpTimeMs: time from first byte to stream completion
       let firstByteTimeMs: number | undefined;
+      let slurpTimeMs: number | undefined;
       if (value instanceof ReadableStream) {
         const reader = value.getReader();
         let isFirstChunk = true;
+        let firstByteTimestamp: number | undefined;
         while (true) {
           const { done } = await reader.read();
           if (isFirstChunk && !done && run.startedAt) {
             const startedAt = new Date(run.startedAt).getTime();
-            firstByteTimeMs = Date.now() - startedAt;
+            firstByteTimestamp = Date.now();
+            firstByteTimeMs = firstByteTimestamp - startedAt;
             isFirstChunk = false;
           }
-          if (done) break;
+          if (done) {
+            if (firstByteTimestamp !== undefined) {
+              slurpTimeMs = Date.now() - firstByteTimestamp;
+            }
+            break;
+          }
         }
       }
-      stageTiming('workflow with stream', run, { firstByteTimeMs });
+      stageTiming('workflow with stream', run, {
+        firstByteTimeMs,
+        slurpTimeMs,
+      });
     },
     { time: 5000, warmupIterations: 1, teardown }
   );
+
+  // Concurrent step benchmarks for Promise.all/Promise.race at various scales
+  const concurrentStepCounts = [
+    { count: 10, skip: false, time: 30000 },
+    { count: 25, skip: false, time: 30000 },
+    { count: 100, skip: true, time: 60000 },
+    { count: 500, skip: true, time: 120000 },
+    { count: 1000, skip: true, time: 180000 },
+  ] as const;
+
+  const concurrentStepTypes = [
+    { type: 'Promise.all', workflow: 'promiseAllStressTestWorkflow' },
+    { type: 'Promise.race', workflow: 'promiseRaceStressTestLargeWorkflow' },
+  ] as const;
+
+  for (const { type, workflow } of concurrentStepTypes) {
+    for (const { count, skip, time } of concurrentStepCounts) {
+      const name = `${type} with ${count} concurrent steps`;
+      const benchFn = skip ? bench.skip : bench;
+
+      benchFn(
+        name,
+        async () => {
+          const { runId } = await triggerWorkflow(workflow, [count]);
+          const { run } = await getWorkflowReturnValue(runId);
+          stageTiming(name, run);
+        },
+        { time, iterations: 1, warmupIterations: 0, teardown }
+      );
+    }
+  }
 });

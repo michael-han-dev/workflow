@@ -1,13 +1,13 @@
 import { runInContext } from 'node:vm';
-import { ERROR_SLUGS } from '@workflow/errors';
+import { ERROR_SLUGS, WorkflowRuntimeError } from '@workflow/errors';
 import { withResolvers } from '@workflow/utils';
 import { getPort } from '@workflow/utils/get-port';
+import { parseWorkflowName } from '@workflow/utils/parse-name';
 import type { Event, WorkflowRun } from '@workflow/world';
 import * as nanoid from 'nanoid';
 import { monotonicFactory } from 'ulid';
 import { EventConsumerResult, EventsConsumer } from './events-consumer.js';
 import { ENOTSUP } from './global.js';
-import { parseWorkflowName } from './parse-name.js';
 import type { WorkflowOrchestratorContext } from './private.js';
 import {
   dehydrateWorkflowReturnValue,
@@ -16,6 +16,7 @@ import {
 import { createUseStep } from './step.js';
 import {
   BODY_INIT_SYMBOL,
+  STABLE_ULID,
   WORKFLOW_CREATE_HOOK,
   WORKFLOW_GET_STREAM_ID,
   WORKFLOW_SLEEP,
@@ -76,7 +77,7 @@ export async function runWorkflow(
       eventsConsumer: new EventsConsumer(events),
       generateUlid: () => ulid(+startedAt),
       generateNanoid,
-      invocationsQueue: [],
+      invocationsQueue: new Map(),
     };
 
     // Subscribe to the events log to update the timestamp in the vm context
@@ -86,6 +87,27 @@ export async function runWorkflow(
         updateTimestamp(+createdAt);
       }
       // Never consume events - this is only a passive subscriber
+      return EventConsumerResult.NotConsumed;
+    });
+
+    // Consume run lifecycle events - these are structural events that don't
+    // need special handling in the workflow, but must be consumed to advance
+    // past them in the event log
+    workflowContext.eventsConsumer.subscribe((event) => {
+      if (!event) {
+        return EventConsumerResult.NotConsumed;
+      }
+
+      // Consume run_created - every run has exactly one
+      if (event.eventType === 'run_created') {
+        return EventConsumerResult.Consumed;
+      }
+
+      // Consume run_started - every run has exactly one
+      if (event.eventType === 'run_started') {
+        return EventConsumerResult.Consumed;
+      }
+
       return EventConsumerResult.NotConsumed;
     });
 
@@ -118,6 +140,8 @@ export async function runWorkflow(
 
     // @ts-expect-error - `@types/node` says symbol is not valid, but it does work
     vmGlobalThis[WORKFLOW_CONTEXT_SYMBOL] = ctx;
+    // @ts-expect-error - `@types/node` says symbol is not valid, but it does work
+    vmGlobalThis[STABLE_ULID] = ulid;
 
     // NOTE: Will have a config override to use the custom fetch step.
     //       For now `fetch` must be explicitly imported from `workflow`.
@@ -125,6 +149,43 @@ export async function runWorkflow(
       throw new vmGlobalThis.Error(
         `Global "fetch" is unavailable in workflow functions. Use the "fetch" step function from "workflow" to make HTTP requests.\n\nLearn more: https://useworkflow.dev/err/${ERROR_SLUGS.FETCH_IN_WORKFLOW_FUNCTION}`
       );
+    };
+
+    // Override timeout/interval functions to throw helpful errors
+    // These are not supported in workflow functions because they rely on
+    // asynchronous scheduling which breaks deterministic replay
+    const timeoutErrorMessage =
+      'Timeout functions like "setTimeout" and "setInterval" are not supported in workflow functions. Use the "sleep" function from "workflow" for time-based delays.';
+
+    (vmGlobalThis as any).setTimeout = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).setInterval = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).clearTimeout = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).clearInterval = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).setImmediate = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
+    };
+    (vmGlobalThis as any).clearImmediate = () => {
+      throw new WorkflowRuntimeError(timeoutErrorMessage, {
+        slug: ERROR_SLUGS.TIMEOUT_FUNCTIONS_IN_WORKFLOW,
+      });
     };
 
     // `Request` and `Response` are special built-in classes that invoke steps

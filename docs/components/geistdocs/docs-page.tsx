@@ -78,6 +78,12 @@ export const generatePageMetadata = (slug: PageProps['slug']) => {
     openGraph: {
       images: getPageImage(page).url,
     },
+    alternates: {
+      canonical: page.url,
+      media: {
+        'text/markdown': `${page.url}.md`,
+      },
+    },
   };
 
   return metadata;

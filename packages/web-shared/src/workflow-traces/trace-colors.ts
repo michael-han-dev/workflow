@@ -26,8 +26,6 @@ function getStatusClassName(
       return styles.spanCompleted;
     case 'cancelled':
       return styles.spanCancelled;
-    case 'paused':
-      return styles.spanPaused;
     case 'failed':
       return styles.spanFailed;
     default:
@@ -91,7 +89,7 @@ export const getCustomSpanEventClassName = (
   const eventName = spanEvent.event.name;
 
   // Failure events - Red
-  if (eventName === 'step_failed' || eventName === 'workflow_failed') {
+  if (eventName === 'step_failed' || eventName === 'run_failed') {
     return styles.eventFailed;
   }
 

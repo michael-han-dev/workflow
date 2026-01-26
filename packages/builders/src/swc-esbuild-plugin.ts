@@ -16,8 +16,6 @@ export interface SwcPluginOptions {
   mode: 'step' | 'workflow' | 'client';
   entriesToBundle?: string[];
   outdir?: string;
-  tsPaths?: Record<string, string[]>;
-  tsBaseUrl?: string;
   workflowManifest?: WorkflowManifest;
 }
 
@@ -28,7 +26,18 @@ const NODE_RESOLVE_OPTIONS = {
   importsFields: ['imports'],
   conditionNames: ['node', 'require'],
   descriptionFiles: ['package.json'],
-  extensions: ['.ts', '.mts', '.cjs', '.js', '.json', '.node'],
+  extensions: [
+    '.ts',
+    '.tsx',
+    '.mts',
+    '.cts',
+    '.cjs',
+    '.mjs',
+    '.js',
+    '.jsx',
+    '.json',
+    '.node',
+  ],
   enforceExtensions: false,
   symlinks: true,
   mainFields: ['main'],
@@ -195,18 +204,7 @@ export function createSwcPlugin(options: SwcPluginOptions): Plugin {
           }
 
           const { code: transformedCode, workflowManifest } =
-            await applySwcTransform(
-              relativeFilepath,
-              source,
-              options.mode,
-              // we need to provide the tsconfig/jsconfig
-              // alias via swc so that we can resolve them
-              // with our custom resolve logic
-              {
-                paths: options.tsPaths,
-                baseUrl: options.tsBaseUrl,
-              }
-            );
+            await applySwcTransform(relativeFilepath, source, options.mode);
 
           if (!options.workflowManifest) {
             options.workflowManifest = {};

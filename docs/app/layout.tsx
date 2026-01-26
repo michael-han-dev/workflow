@@ -1,4 +1,5 @@
 import './global.css';
+import type { Metadata } from 'next';
 import { Navbar } from '@/components/geistdocs/navbar';
 import { GeistdocsProvider } from '@/components/geistdocs/provider';
 import { mono, sans } from '@/lib/geistdocs/fonts';
@@ -27,6 +28,10 @@ const links = [
   {
     label: 'Docs',
     href: '/docs',
+  },
+  {
+    label: 'Worlds',
+    href: '/worlds',
   },
   {
     label: 'Examples',
@@ -58,5 +63,9 @@ const Layout = ({ children }: LayoutProps<'/'>) => (
     </body>
   </html>
 );
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://useworkflow.dev'),
+};
 
 export default Layout;

@@ -8,7 +8,8 @@ Common distributed control flow patterns are simple to implement in workflows an
 
 The simplest way to orchestrate steps is to execute them one after another, where each step can be dependent on the previous step.
 
-```ts lineNumbers
+{/* @skip-typecheck: incomplete code sample */}
+```typescript lineNumbers
 export async function dataPipelineWorkflow(data: any) {
   "use workflow";
 
@@ -24,7 +25,7 @@ export async function dataPipelineWorkflow(data: any) {
 
 When you need to execute multiple steps in parallel, you can use `Promise.all` to run them all at the same time.
 
-```ts lineNumbers
+```typescript lineNumbers
 export async function fetchUserData(userId: string) {
   "use workflow";
 
@@ -41,7 +42,7 @@ export async function fetchUserData(userId: string) {
 This not only applies to steps—since [`sleep()`](/docs/api-reference/workflow/sleep) and [`webhook`](/docs/api-reference/workflow/create-webhook) are also just promises, we can await those in parallel too.
 We can also use `Promise.race` instead of `Promise.all` to stop executing promises after the first one completes.
 
-```ts lineNumbers
+```typescript lineNumbers
 
 import { sleep, createWebhook } from "workflow";
 
@@ -66,7 +67,7 @@ export async function runExternalTask(userId: string) {
 
 Here's a simplified example taken from the [birthday card generator demo](https://github.com/vercel/workflow-examples/tree/main/birthday-card-generator), to illustrate how more complex orchestration can be modelled in promises.
 
-```ts lineNumbers
+```typescript lineNumbers
 import { createWebhook, sleep } from "workflow"
 
 async function birthdayWorkflow(

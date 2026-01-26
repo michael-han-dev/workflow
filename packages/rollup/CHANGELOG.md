@@ -1,5 +1,36 @@
 # @workflow/rollup
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [[`1843704`](https://github.com/vercel/workflow/commit/1843704b83d5aaadcf1e4f5f1c73c150bd0bd2a3)]:
+  - @workflow/swc-plugin@4.0.1-beta.14
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [[`7906429`](https://github.com/vercel/workflow/commit/7906429541672049821ec8b74452c99868db6290), [`a2fc53a`](https://github.com/vercel/workflow/commit/a2fc53a0dc2df0648ae9e7fd59aae044a612ebcb)]:
+  - @workflow/swc-plugin@4.0.1-beta.13
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 21cff15: Add support for `.mjs`, `.mts`, `.cjs`, and `.cts` file extensions in the SWC transform
+
+  - Updated turbopack rules to include `*.mjs`, `*.mts`, `*.cjs`, `*.cts` in addition to existing extensions
+  - Fixed TypeScript detection for `.mts` and `.cts` files across all transform plugins
+  - Updated esbuild `resolveExtensions` to include `.mts` and `.cts`
+  - Updated the file watcher's `watchableExtensions` to include `.cts`
+
+- Updated dependencies [fa37d26]
+- Updated dependencies [f46c51e]
+- Updated dependencies [af5b005]
+- Updated dependencies [43f2dec]
+  - @workflow/swc-plugin@4.0.1-beta.12
+
 ## 4.0.0-beta.5
 
 ### Patch Changes

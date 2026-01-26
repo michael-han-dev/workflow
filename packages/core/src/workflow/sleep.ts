@@ -3,6 +3,7 @@ import type { StringValue } from 'ms';
 import { EventConsumerResult } from '../events-consumer.js';
 import { type WaitInvocationQueueItem, WorkflowSuspension } from '../global.js';
 import type { WorkflowOrchestratorContext } from '../private.js';
+import { WorkflowRuntimeError } from '@workflow/errors';
 
 export function createSleep(ctx: WorkflowOrchestratorContext) {
   return async function sleepImpl(
@@ -14,12 +15,13 @@ export function createSleep(ctx: WorkflowOrchestratorContext) {
     // Calculate the resume time
     const resumeAt = parseDurationToDate(param);
 
-    // Add wait to invocations queue
-    ctx.invocationsQueue.push({
+    // Add wait to invocations queue (using Map for O(1) operations)
+    const waitItem: WaitInvocationQueueItem = {
       type: 'wait',
       correlationId,
       resumeAt,
-    });
+    };
+    ctx.invocationsQueue.set(correlationId, waitItem);
 
     ctx.eventsConsumer.subscribe((event) => {
       // If there are no events and we're waiting for wait_completed,
@@ -33,34 +35,27 @@ export function createSleep(ctx: WorkflowOrchestratorContext) {
         return EventConsumerResult.NotConsumed;
       }
 
+      if (event.correlationId !== correlationId) {
+        // We're not interested in this event - the correlationId belongs to a different entity
+        return EventConsumerResult.NotConsumed;
+      }
+
       // Check for wait_created event to mark this wait as having the event created
-      if (
-        event?.eventType === 'wait_created' &&
-        event.correlationId === correlationId
-      ) {
+      if (event.eventType === 'wait_created') {
         // Mark this wait as having the created event, but keep it in the queue
-        const waitItem = ctx.invocationsQueue.find(
-          (item) => item.type === 'wait' && item.correlationId === correlationId
-        ) as WaitInvocationQueueItem | undefined;
-        if (waitItem) {
-          waitItem.hasCreatedEvent = true;
-          waitItem.resumeAt = event.eventData.resumeAt;
+        // O(1) lookup using Map
+        const queueItem = ctx.invocationsQueue.get(correlationId);
+        if (queueItem && queueItem.type === 'wait') {
+          queueItem.hasCreatedEvent = true;
+          queueItem.resumeAt = event.eventData.resumeAt;
         }
         return EventConsumerResult.Consumed;
       }
 
       // Check for wait_completed event
-      if (
-        event?.eventType === 'wait_completed' &&
-        event.correlationId === correlationId
-      ) {
-        // Remove this wait from the invocations queue
-        const index = ctx.invocationsQueue.findIndex(
-          (item) => item.type === 'wait' && item.correlationId === correlationId
-        );
-        if (index !== -1) {
-          ctx.invocationsQueue.splice(index, 1);
-        }
+      if (event.eventType === 'wait_completed') {
+        // Remove this wait from the invocations queue (O(1) delete using Map)
+        ctx.invocationsQueue.delete(correlationId);
 
         // Wait has elapsed, resolve the sleep
         setTimeout(() => {
@@ -69,7 +64,15 @@ export function createSleep(ctx: WorkflowOrchestratorContext) {
         return EventConsumerResult.Finished;
       }
 
-      return EventConsumerResult.NotConsumed;
+      // An unexpected event type has been received, this event log looks corrupted. Let's fail immediately.
+      setTimeout(() => {
+        ctx.onWorkflowError(
+          new WorkflowRuntimeError(
+            `Unexpected event type for wait ${correlationId} "${event.eventType}"`
+          )
+        );
+      }, 0);
+      return EventConsumerResult.Finished;
     });
 
     return promise;
