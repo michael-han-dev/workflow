@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import type { World } from '@workflow/world';
 import { createLocalWorld } from '@workflow/world-local';
 import { createVercelWorld } from '@workflow/world-vercel';
@@ -41,19 +43,33 @@ function createLocalWorldFromEnv(): World {
   });
 }
 
-/**
- * Bypasses bundler static analysis for dynamic imports.
- * Bundlers can't resolve `import(variable)`, so we use Function constructor.
- */
 const dynamicImport = new Function('specifier', 'return import(specifier)') as (
   specifier: string
 ) => Promise<any>;
 
-/**
- * Load an external world module via dynamic import (supports ESM).
- */
+function resolveModulePath(specifier: string): string {
+  if (
+    specifier.startsWith('file://') ||
+    specifier.startsWith('/') ||
+    specifier.startsWith('./') ||
+    specifier.startsWith('../')
+  ) {
+    return specifier;
+  }
+
+  try {
+    const require = createRequire(
+      pathToFileURL(process.cwd() + '/package.json').href
+    );
+    return pathToFileURL(require.resolve(specifier)).href;
+  } catch {
+    return specifier;
+  }
+}
+
 async function loadExternalWorld(targetWorld: string): Promise<World> {
-  const mod = await dynamicImport(targetWorld);
+  const resolvedPath = resolveModulePath(targetWorld);
+  const mod = await dynamicImport(resolvedPath);
 
   if (typeof mod === 'function') {
     return mod() as World;
