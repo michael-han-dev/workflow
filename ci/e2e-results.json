@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-01-26T21:08:21.975Z",
-  "commit": "f64b7761657c46978bcb0df80e0bfc768f2b8a10",
+  "lastUpdated": "2026-01-28T03:12:33.634Z",
+  "commit": "9ec21584d6ad866146ed27622a0d1aa1a96a7b48",
   "branch": "main",
   "type": "e2e",
   "worlds": {
@@ -42,10 +42,10 @@
     },
     "local": {
       "status": "passing",
-      "total": 1125,
-      "passed": 1061,
+      "total": 1215,
+      "passed": 1143,
       "failed": 0,
-      "skipped": 64,
+      "skipped": 72,
       "frameworks": {
         "astro": {
           "total": 90,
@@ -102,10 +102,10 @@
     },
     "postgres": {
       "status": "passing",
-      "total": 540,
-      "passed": 508,
+      "total": 585,
+      "passed": 549,
       "failed": 0,
-      "skipped": 32,
+      "skipped": 36,
       "frameworks": {
         "astro": {
           "total": 45,
