@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as ApiTriggerRouteImport } from './routes/api/trigger';
 import { Route as ApiTestStreamRouteImport } from './routes/api/test-stream';
+import { Route as ApiTestHealthCheckRouteImport } from './routes/api/test-health-check';
 import { Route as ApiTestDirectStepCallRouteImport } from './routes/api/test-direct-step-call';
 import { Route as ApiHookRouteImport } from './routes/api/hook';
 import { Route as ApiChatRouteImport } from './routes/api/chat';
@@ -29,6 +30,11 @@ const ApiTriggerRoute = ApiTriggerRouteImport.update({
 const ApiTestStreamRoute = ApiTestStreamRouteImport.update({
   id: '/api/test-stream',
   path: '/api/test-stream',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ApiTestHealthCheckRoute = ApiTestHealthCheckRouteImport.update({
+  id: '/api/test-health-check',
+  path: '/api/test-health-check',
   getParentRoute: () => rootRouteImport,
 } as any);
 const ApiTestDirectStepCallRoute = ApiTestDirectStepCallRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute;
   '/api/hook': typeof ApiHookRoute;
   '/api/test-direct-step-call': typeof ApiTestDirectStepCallRoute;
+  '/api/test-health-check': typeof ApiTestHealthCheckRoute;
   '/api/test-stream': typeof ApiTestStreamRoute;
   '/api/trigger': typeof ApiTriggerRoute;
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute;
   '/api/hook': typeof ApiHookRoute;
   '/api/test-direct-step-call': typeof ApiTestDirectStepCallRoute;
+  '/api/test-health-check': typeof ApiTestHealthCheckRoute;
   '/api/test-stream': typeof ApiTestStreamRoute;
   '/api/trigger': typeof ApiTriggerRoute;
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute;
   '/api/hook': typeof ApiHookRoute;
   '/api/test-direct-step-call': typeof ApiTestDirectStepCallRoute;
+  '/api/test-health-check': typeof ApiTestHealthCheckRoute;
   '/api/test-stream': typeof ApiTestStreamRoute;
   '/api/trigger': typeof ApiTriggerRoute;
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/hook'
     | '/api/test-direct-step-call'
+    | '/api/test-health-check'
     | '/api/test-stream'
     | '/api/trigger';
   fileRoutesByTo: FileRoutesByTo;
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/hook'
     | '/api/test-direct-step-call'
+    | '/api/test-health-check'
     | '/api/test-stream'
     | '/api/trigger';
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/hook'
     | '/api/test-direct-step-call'
+    | '/api/test-health-check'
     | '/api/test-stream'
     | '/api/trigger';
   fileRoutesById: FileRoutesById;
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute;
   ApiHookRoute: typeof ApiHookRoute;
   ApiTestDirectStepCallRoute: typeof ApiTestDirectStepCallRoute;
+  ApiTestHealthCheckRoute: typeof ApiTestHealthCheckRoute;
   ApiTestStreamRoute: typeof ApiTestStreamRoute;
   ApiTriggerRoute: typeof ApiTriggerRoute;
 }
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/api/test-stream';
       fullPath: '/api/test-stream';
       preLoaderRoute: typeof ApiTestStreamRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/api/test-health-check': {
+      id: '/api/test-health-check';
+      path: '/api/test-health-check';
+      fullPath: '/api/test-health-check';
+      preLoaderRoute: typeof ApiTestHealthCheckRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/api/test-direct-step-call': {
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiHookRoute: ApiHookRoute,
   ApiTestDirectStepCallRoute: ApiTestDirectStepCallRoute,
+  ApiTestHealthCheckRoute: ApiTestHealthCheckRoute,
   ApiTestStreamRoute: ApiTestStreamRoute,
   ApiTriggerRoute: ApiTriggerRoute,
 };
